@@ -1,0 +1,1178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backtrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Backtrack">
+<meta name="theme-color" content="#204F47">
+<style>
+  :root{
+    --bg:#F2F5F4;
+    --surface:#FFFFFF;
+    --surface-2:#E9EFEC;
+    --ink:#17251F;
+    --ink-2:#4E5D58;
+    --muted:#8A9A95;
+    --line:#DDE5E1;
+    --accent:#2F6F65;
+    --accent-strong:#204F47;
+    --accent-wash:#E4EFEC;
+    --good:#3E8E52;
+    --good-wash:#E5F2E7;
+    --warn:#B97A1E;
+    --warn-wash:#F6ECDA;
+    --critical:#BE5040;
+    --critical-wash:#F6E5E1;
+    --shadow: 0 1px 2px rgba(23,37,31,0.06), 0 6px 20px -8px rgba(23,37,31,0.18);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101815;
+      --surface:#17211D;
+      --surface-2:#1D2924;
+      --ink:#E9EFEC;
+      --ink-2:#A9B8B2;
+      --muted:#67766F;
+      --line:#28342F;
+      --accent:#67BBAA;
+      --accent-strong:#8ED2C4;
+      --accent-wash:#1D2E2A;
+      --good:#63C17B;
+      --good-wash:#1B2E1F;
+      --warn:#E3AC53;
+      --warn-wash:#2E2517;
+      --critical:#E3806E;
+      --critical-wash:#2E1E1A;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101815;
+    --surface:#17211D;
+    --surface-2:#1D2924;
+    --ink:#E9EFEC;
+    --ink-2:#A9B8B2;
+    --muted:#67766F;
+    --line:#28342F;
+    --accent:#67BBAA;
+    --accent-strong:#8ED2C4;
+    --accent-wash:#1D2E2A;
+    --good:#63C17B;
+    --good-wash:#1B2E1F;
+    --warn:#E3AC53;
+    --warn-wash:#2E2517;
+    --critical:#E3806E;
+    --critical-wash:#2E1E1A;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%; overflow-x:hidden; max-width:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Public Sans", -apple-system, "Segoe UI", sans-serif;
+    padding-inline:16px;
+    padding-block:20px 96px;
+    overflow-x:hidden;
+    max-width:100%;
+  }
+  .wrap, .layout, .card, .row{min-width:0;}
+  h1,h2,h3{font-family:"Fraunces", Georgia, serif; text-wrap:balance; margin:0;}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums;}
+  a{color:var(--accent-strong);}
+
+  .wrap{max-width:1040px; margin:0 auto; display:flex; flex-direction:column; gap:20px;}
+
+  /* header */
+  .top{display:flex; align-items:center; gap:14px; justify-content:space-between; flex-wrap:wrap;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand h1{font-size:1.5rem; font-weight:600; color:var(--ink); letter-spacing:-0.01em;}
+  .brand .sub{font-size:0.78rem; color:var(--muted); margin-top:2px;}
+  .spine{flex:none;}
+  .datepick{display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:6px 8px; box-shadow:var(--shadow);}
+  .datepick label{font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; display:block; text-align:center;}
+  .datepick input[type="date"]{border:none; background:transparent; color:var(--ink); font-family:"IBM Plex Mono",monospace; font-size:0.92rem;}
+  .daynav{border:1px solid var(--line); background:var(--surface-2); color:var(--ink); width:30px; height:30px; border-radius:8px; font-size:1rem; line-height:1; cursor:pointer; flex:none;}
+  .daynav:disabled{opacity:0.35; cursor:default;}
+
+  .banner{background:var(--warn-wash); color:var(--warn); border:1px solid var(--warn); border-radius:10px; padding:10px 14px; font-size:0.85rem; display:none;}
+  .banner.show{display:block;}
+
+  .layout{display:grid; grid-template-columns:1fr; gap:20px;}
+  @media (min-width:860px){
+    .layout{grid-template-columns: 1.15fr 0.85fr; align-items:start;}
+    .trends{position:sticky; top:20px;}
+  }
+
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px 18px 20px; box-shadow:var(--shadow);}
+  .card + .card{margin-top:14px;}
+  .card h2{font-size:1.02rem; font-weight:600; margin-bottom:2px;}
+  .card .hint{font-size:0.78rem; color:var(--muted); margin-bottom:14px;}
+  .row{display:flex; gap:10px; flex-wrap:wrap;}
+  .field{display:flex; flex-direction:column; gap:6px; flex:1; min-width:140px;}
+  .field label{font-size:0.72rem; color:var(--ink-2); text-transform:uppercase; letter-spacing:0.05em;}
+
+  /* pain dial */
+  .pain-head{display:flex; align-items:center; gap:16px; margin-bottom:10px;}
+  .pain-dial{position:relative; width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none; border:3px solid var(--good); transition:border-color .2s;}
+  .pain-dial .num{font-family:"IBM Plex Mono",monospace; font-size:1.6rem; font-weight:600;}
+  .pain-meta{display:flex; flex-direction:column; gap:2px;}
+  .pain-word{font-size:0.95rem; font-weight:600;}
+  .pain-scale-lbl{font-size:0.76rem; color:var(--muted);}
+  input[type="range"]{-webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:4px; background:linear-gradient(to right, var(--good), var(--warn), var(--critical)); outline:none;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(--surface); border:3px solid var(--ink); cursor:pointer; box-shadow:var(--shadow);}
+  input[type="range"]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; background:var(--surface); border:3px solid var(--ink); cursor:pointer;}
+
+  .chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2); font-size:0.82rem; padding:7px 13px; border-radius:999px; cursor:pointer; font-family:"Public Sans"; transition:all .15s;}
+  .chip[aria-pressed="true"]{background:var(--accent-wash); border-color:var(--accent); color:var(--accent-strong); font-weight:600;}
+  .seg{display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; width:fit-content;}
+  .seg button{border:none; background:var(--surface-2); color:var(--ink-2); padding:8px 14px; font-size:0.82rem; cursor:pointer; font-family:"Public Sans"; border-right:1px solid var(--line);}
+  .seg button:last-child{border-right:none;}
+  .seg button[aria-pressed="true"]{background:var(--accent); color:#fff; font-weight:600;}
+
+  .switchrow{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:2px 0;}
+  .switchrow .txt{display:flex; flex-direction:column;}
+  .switchrow .txt b{font-size:0.9rem; font-weight:600;}
+  .switchrow .txt span{font-size:0.76rem; color:var(--muted);}
+  .switch{position:relative; width:44px; height:26px; flex:none;}
+  .switch input{opacity:0; width:100%; height:100%; margin:0; cursor:pointer; position:absolute; z-index:2;}
+  .switch .track{position:absolute; inset:0; background:var(--line); border-radius:999px; transition:background .15s;}
+  .switch .thumb{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .15s;}
+  .switch input:checked + .track{background:var(--accent);}
+  .switch input:checked ~ .thumb{transform:translateX(18px);}
+
+  textarea, input[type="text"], input[type="number"]{
+    font-family:"Public Sans"; font-size:0.9rem; color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--line); border-radius:10px; padding:9px 11px; width:100%;
+  }
+  input.pill-input{border-radius:999px; padding:9px 16px; border:1px solid var(--accent); background:var(--accent-wash); color:var(--accent-strong);}
+  input.pill-input::placeholder{color:var(--accent);}
+  textarea{resize:vertical; min-height:56px;}
+  input[type="number"]{font-family:"IBM Plex Mono",monospace;}
+  .collapse{max-height:0; overflow:hidden; transition:max-height .2s ease; }
+  .collapse.open{max-height:400px;}
+  .stack{display:flex; flex-direction:column; gap:10px; margin-top:12px;}
+
+  .activities{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+  .activity{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:9px 12px;}
+  .activity .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  .activity .dot.strava{background:#e8703a;}
+  .activity .dot.manual{background:var(--accent);}
+  .activity .body{flex:1; min-width:0;}
+  .activity .name{font-size:0.86rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;}
+  .activity .meta{font-size:0.75rem; color:var(--muted); overflow-wrap:anywhere; word-break:break-word;}
+  .activity button{border:none; background:none; color:var(--muted); cursor:pointer; font-size:1rem; line-height:1; padding:4px;}
+  .add-activity-form{display:none; gap:8px; flex-wrap:wrap; background:var(--surface-2); border:1px dashed var(--line); border-radius:10px; padding:10px;}
+  .add-activity-form.open{display:flex;}
+  .btn{font-family:"Public Sans"; font-weight:600; font-size:0.85rem; border-radius:10px; padding:9px 16px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); cursor:pointer;}
+  .btn:disabled, .daynav:disabled{opacity:0.4; cursor:default;}
+  .btn.ghost{background:transparent; border:1px dashed var(--muted); color:var(--ink-2); width:100%;}
+  .btn.small{padding:7px 12px; font-size:0.78rem;}
+
+  .savebar{position:sticky; bottom:12px; display:flex; justify-content:center; z-index:5; margin-top:4px;}
+  .savebar-inner{display:flex; align-items:center; gap:12px; background:var(--ink); color:var(--bg); border-radius:999px; padding:8px 8px 8px 20px; box-shadow:var(--shadow);}
+  :root[data-theme="dark"] .savebar-inner, .savebar-inner{background:var(--accent-strong); color:#fff;}
+  .savebar button{font-family:"Public Sans"; font-weight:700; font-size:0.88rem; border:none; border-radius:999px; padding:10px 20px; background:var(--surface); color:var(--accent-strong); cursor:pointer;}
+  .save-status{font-size:0.78rem; opacity:0.9;}
+
+  /* trends */
+  .rangetabs{display:flex; gap:6px; margin-bottom:14px;}
+  .rangetabs button{flex:1; border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2); border-radius:8px; padding:6px; font-size:0.78rem; font-family:"IBM Plex Mono",monospace; cursor:pointer;}
+  .rangetabs button[aria-pressed="true"]{background:var(--accent); color:#fff; border-color:var(--accent);}
+
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(100px,1fr)); gap:10px; margin-bottom:16px;}
+  .tile{background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:2px;}
+  .tile .lbl{font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;}
+  .tile .val{font-family:"IBM Plex Mono",monospace; font-size:1.15rem; font-weight:600;}
+  .tile .val small{font-size:0.65rem; color:var(--muted); font-weight:400;}
+
+  .chartwrap{position:relative; width:100%;}
+  svg#chart{width:100%; height:auto; display:block; overflow:hidden; max-width:100%;}
+  .tooltip{position:absolute; pointer-events:none; background:var(--ink); color:var(--bg); font-size:0.74rem; border-radius:8px; padding:7px 10px; transform:translate(-50%,-115%); white-space:nowrap; box-shadow:var(--shadow); opacity:0; transition:opacity .1s; z-index:4;}
+  :root[data-theme="dark"] .tooltip{background:var(--surface-2); color:var(--ink); border:1px solid var(--line);}
+  .tooltip.show{opacity:1;}
+  .legend{display:flex; gap:16px; margin-top:8px; flex-wrap:wrap;}
+  .legend .item{display:flex; align-items:center; gap:6px; font-size:0.74rem; color:var(--ink-2);}
+  .legend .swatch{width:10px; height:10px; border-radius:3px;}
+
+  .history{display:flex; flex-direction:column; gap:6px; margin-top:16px;}
+  .hrow{display:grid; grid-template-columns:52px minmax(0,1fr) auto; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid var(--line); font-size:0.82rem; cursor:pointer; min-width:0;}
+  .hrow:last-child{border-bottom:none;}
+  .hrow:hover{background:var(--surface-2);}
+  .hrow .d{font-family:"IBM Plex Mono",monospace; color:var(--ink-2); font-size:0.76rem;}
+  .hrow .info{color:var(--muted); font-size:0.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .pill{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:0.76rem; border-radius:999px; padding:3px 9px; width:fit-content;}
+  .pill.good{background:var(--good-wash); color:var(--good);}
+  .pill.warn{background:var(--warn-wash); color:var(--warn);}
+  .pill.critical{background:var(--critical-wash); color:var(--critical);}
+
+  .empty{text-align:center; padding:26px 10px; color:var(--muted);}
+  .empty h3{font-size:1rem; color:var(--ink-2); margin-bottom:6px;}
+  .empty p{font-size:0.84rem; margin:0;}
+
+  /* view tabs */
+  .tabs{display:flex; gap:6px; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:4px; width:fit-content;}
+  .tabs button{border:none; background:transparent; color:var(--ink-2); font-family:"Public Sans"; font-weight:600; font-size:0.86rem; padding:8px 18px; border-radius:9px; cursor:pointer;}
+  .tabs button[aria-selected="true"]{background:var(--surface); color:var(--accent-strong); box-shadow:var(--shadow);}
+  .tabpanel[hidden]{display:none;}
+
+  /* report */
+  .narrative{background:var(--accent-wash); border:1px solid var(--accent); color:var(--accent-strong); border-radius:12px; padding:12px 14px; font-size:0.88rem; margin-bottom:16px; line-height:1.45;}
+  .tile.wide{grid-column:span 1;}
+  .delta{font-size:0.68rem; font-weight:600; margin-left:4px;}
+  .delta.good{color:var(--good);}
+  .delta.bad{color:var(--critical);}
+  .delta.flat{color:var(--muted);}
+  .trigger-list{display:flex; flex-direction:column; gap:8px;}
+  .trigger-row{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px;}
+  .trigger-row .bar-wrap{flex:1; min-width:0;}
+  .trigger-row .lbl-line{display:flex; justify-content:space-between; font-size:0.82rem; font-weight:600; margin-bottom:5px;}
+  .trigger-row .sub-line{font-size:0.72rem; color:var(--muted);}
+  .bar-track{height:6px; border-radius:4px; background:var(--line); overflow:hidden;}
+  .bar-fill{height:100%; border-radius:4px; background:var(--accent);}
+  .bar-fill.flagged{background:var(--critical);}
+  .trigger-row .count{font-family:"IBM Plex Mono",monospace; font-size:0.9rem; font-weight:600; flex:none;}
+
+  .footer-note{font-size:0.74rem; color:var(--muted); text-align:center; padding-top:6px;}
+</style>
+
+<div class="wrap">
+
+  <div class="top">
+    <div class="brand">
+      <svg class="spine" width="34" height="34" viewBox="0 0 34 34" fill="none">
+        <path d="M9 4 C 20 8, 12 13, 22 17 C 30 20, 14 24, 24 30" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="9" cy="4" r="2.4" fill="var(--accent-strong)"/>
+        <circle cx="22" cy="17" r="2.4" fill="var(--accent-strong)"/>
+        <circle cx="24" cy="30" r="2.4" fill="var(--accent-strong)"/>
+      </svg>
+      <div>
+        <h1>Backtrack</h1>
+        <div class="sub">Nightly back &amp; rehab diary</div>
+      </div>
+    </div>
+    <div class="datepick">
+      <button type="button" id="date-prev" class="daynav" aria-label="Previous day">‹</button>
+      <div>
+        <label for="entry-date">Entry</label>
+        <input type="date" id="entry-date">
+      </div>
+      <button type="button" id="date-next" class="daynav" aria-label="Next day">›</button>
+      <button type="button" id="date-today" class="btn small" style="display:none;">Today</button>
+    </div>
+  </div>
+
+  <div id="offline-banner" class="banner">Can't reach the database right now — check your connection. Anything you enter won't save until this clears.</div>
+
+  <div class="tabs" id="view-tabs" role="tablist">
+    <button data-tab="diary" aria-selected="true" role="tab">Diary</button>
+    <button data-tab="report" aria-selected="false" role="tab">Report</button>
+  </div>
+
+  <div id="tab-diary" class="tabpanel">
+  <div class="layout">
+
+    <div class="entry">
+
+      <div class="card">
+        <div class="pain-head">
+          <div class="pain-dial" id="pain-dial"><span class="num mono" id="pain-num">0</span></div>
+          <div class="pain-meta">
+            <span class="pain-word" id="pain-word">No pain</span>
+            <span class="pain-scale-lbl">Today's back pain, 0 (none) – 10 (worst)</span>
+          </div>
+        </div>
+        <input type="range" id="pain-range" min="0" max="10" step="1" value="0">
+      </div>
+
+      <div class="card">
+        <h2>Triggers &amp; pattern</h2>
+        <div class="hint">What might have aggravated it today — tap all that apply.</div>
+        <div class="chips" id="pain-triggers" role="group" aria-label="Pain triggers">
+          <button class="chip" data-trigger="run" aria-pressed="false">Run</button>
+          <button class="chip" data-trigger="swim" aria-pressed="false">Swim</button>
+          <button class="chip" data-trigger="ride" aria-pressed="false">Ride</button>
+          <button class="chip" data-trigger="yard-work" aria-pressed="false">Yard work</button>
+          <button class="chip" data-trigger="office-chair" aria-pressed="false">Sitting in office chair</button>
+          <button class="chip" data-trigger="other" aria-pressed="false">Other</button>
+        </div>
+        <div class="collapse" id="other-trigger-wrap">
+          <input type="text" id="pain-trigger-other" class="pill-input" placeholder="Describe the trigger…" style="margin-top:8px;">
+        </div>
+        <div class="stack">
+          <label style="font-size:0.72rem; color:var(--ink-2); text-transform:uppercase; letter-spacing:0.05em;">Worst when</label>
+          <div class="seg" id="pain-timing" role="group" aria-label="Pain timing">
+            <button data-timing="morning" aria-pressed="false">Morning</button>
+            <button data-timing="evening" aria-pressed="false">Evening</button>
+            <button data-timing="consistent" aria-pressed="false">All day</button>
+            <button data-timing="variable" aria-pressed="false">Variable</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Activity</h2>
+        <div class="hint">Strava rides &amp; runs sync in automatically around 7pm — add anything else here.</div>
+        <div class="activities" id="activities-list"></div>
+        <div class="add-activity-form" id="add-activity-form">
+          <div class="field" style="min-width:120px;">
+            <label for="act-type">Type</label>
+            <input type="text" id="act-type" placeholder="Yard work, walk, gym…">
+          </div>
+          <div class="field" style="min-width:90px; max-width:110px;">
+            <label for="act-duration">Minutes</label>
+            <input type="number" id="act-duration" min="0" step="5">
+          </div>
+          <div class="field" style="min-width:160px;">
+            <label for="act-notes">Notes (optional)</label>
+            <input type="text" id="act-notes" placeholder="Mowing, edging, bending…">
+          </div>
+          <div style="display:flex; align-items:flex-end; gap:8px;">
+            <button class="btn" id="act-save" type="button">Add</button>
+            <button class="btn ghost" id="act-cancel" type="button" style="width:auto;">Cancel</button>
+          </div>
+        </div>
+        <button class="btn ghost" id="act-add-toggle" type="button" style="margin-top:8px;">+ Add exercise or activity</button>
+      </div>
+
+      <div class="card">
+        <h2>Rehab &amp; stretching</h2>
+        <div class="hint">Prescribed sessions are ~2×/week — no need to force it daily.</div>
+        <div class="switchrow">
+          <div class="txt"><b>Rehab session done</b><span>Your prescribed physio exercises</span></div>
+          <label class="switch"><input type="checkbox" id="rehab-toggle"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="collapse" id="rehab-notes-wrap">
+          <div class="stack">
+            <textarea id="rehab-notes" placeholder="Which exercises, sets/reps…"></textarea>
+          </div>
+        </div>
+        <div class="switchrow" style="margin-top:10px;">
+          <div class="txt"><b>Stretched today</b><span>Quick daily mobility, on its own</span></div>
+          <label class="switch"><input type="checkbox" id="stretch-toggle"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>The day</h2>
+        <div class="row">
+          <div class="field">
+            <label for="office-hours">Hours in chair</label>
+            <input type="number" id="office-hours" min="0" max="24" step="0.5">
+          </div>
+          <div class="field">
+            <label for="sleep-hours">Sleep last night (hrs)</label>
+            <input type="number" id="sleep-hours" min="0" max="16" step="0.5">
+          </div>
+        </div>
+        <div class="switchrow" style="margin-top:12px;">
+          <div class="txt"><b>Took regular breaks</b><span>Up and moving roughly every 45 min</span></div>
+          <label class="switch"><input type="checkbox" id="breaks-toggle"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Medication</h2>
+        <div class="switchrow">
+          <div class="txt"><b>Needed medication</b><span></span></div>
+          <label class="switch"><input type="checkbox" id="med-toggle"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="collapse" id="med-details-wrap">
+          <div class="stack">
+            <div class="row">
+              <div class="field">
+                <label for="med-name">What</label>
+                <input type="text" id="med-name" placeholder="e.g. Panadol Osteo">
+              </div>
+              <div class="field">
+                <label for="med-dose">Dose</label>
+                <input type="text" id="med-dose" placeholder="e.g. 2 tabs">
+              </div>
+            </div>
+            <div>
+              <label style="font-size:0.72rem; color:var(--ink-2); text-transform:uppercase; letter-spacing:0.05em; display:block; margin-bottom:6px;">Helped?</label>
+              <div class="seg" id="med-helped" role="group" aria-label="Medication helped">
+                <button data-helped="yes" aria-pressed="false">Yes</button>
+                <button data-helped="no" aria-pressed="false">No</button>
+                <button data-helped="unsure" aria-pressed="false">Too soon</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Anything else</h2>
+        <div class="hint">Long drive, new mattress, house move, stress — the stuff that doesn't fit a field.</div>
+        <textarea id="notes" placeholder="Notes…"></textarea>
+      </div>
+
+    </div>
+
+    <div class="trends">
+      <div class="card">
+        <h2>Trends</h2>
+        <div class="rangetabs" id="range-tabs">
+          <button data-range="14" aria-pressed="true">14d</button>
+          <button data-range="30" aria-pressed="false">30d</button>
+          <button data-range="90" aria-pressed="false">90d</button>
+        </div>
+        <div class="tiles" id="tiles"></div>
+        <div class="chartwrap">
+          <svg id="chart" viewBox="0 0 340 160" preserveAspectRatio="none"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+        <div class="legend">
+          <div class="item"><span class="swatch" style="background:var(--accent);"></span>Pain score</div>
+          <div class="item"><span class="swatch" style="background:var(--ink-2); border-radius:50%;"></span>Rehab session</div>
+        </div>
+        <div id="empty-trends" class="empty" style="display:none;">
+          <h3>Nothing to chart yet</h3>
+          <p>Log a few nights and your pain trend, rehab adherence and sleep will build up here.</p>
+        </div>
+        <div class="history" id="history-list"></div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+  <div id="tab-report" class="tabpanel" hidden>
+    <div class="card">
+      <h2>Report</h2>
+      <div class="hint">Descriptive patterns from what you've logged — not a diagnosis, just what shows up in the data.</div>
+      <div class="rangetabs" id="report-range-tabs">
+        <button data-range="7" aria-pressed="true">This week</button>
+        <button data-range="30" aria-pressed="false">This month</button>
+        <button data-range="90" aria-pressed="false">90 days</button>
+      </div>
+      <div id="report-narrative" class="narrative"></div>
+      <div class="tiles" id="report-tiles"></div>
+      <h3 style="margin-top:20px; font-size:0.9rem; font-family:'Public Sans'; color:var(--ink-2); text-transform:uppercase; letter-spacing:0.04em;">Triggers this period</h3>
+      <div id="report-triggers" class="trigger-list"></div>
+      <div id="report-empty" class="empty" style="display:none;">
+        <h3>Not enough entries yet</h3>
+        <p>Log a handful of days and trigger patterns will start to show up here.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Tip: use your phone browser's "Add to Home Screen" to give Backtrack its own icon.</div>
+</div>
+
+<div class="savebar">
+  <div class="savebar-inner">
+    <span class="save-status" id="save-status">Not saved yet</span>
+    <button id="save-btn">Save entry</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  "use strict";
+  var TZ = "Australia/Brisbane";
+  var SUPABASE_URL = "https://fmmltsrmyhxtmqseuxck.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_LgEQDgcRZkGh_FMvGlbGXA_7vQlyqe1";
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  var currentId = null;
+  var currentDoc = {};
+  var allEntries = []; // sorted desc by date
+  var range = 14;
+  var reportRange = 7;
+  var pendingActivities = [];
+  var todayPollTimer = null;
+  var TRIGGER_LABELS = {
+    "run":"Run", "swim":"Swim", "ride":"Ride",
+    "yard-work":"Yard work", "office-chair":"Sitting in office chair"
+  };
+  var HIGH_PAIN_THRESHOLD = 6;
+
+  function todayId(){
+    var f = new Intl.DateTimeFormat("en-CA", {timeZone: TZ, year:"numeric", month:"2-digit", day:"2-digit"});
+    return f.format(new Date());
+  }
+  function fmtShort(dateStr){
+    var d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-AU", {day:"numeric", month:"short"});
+  }
+  function fmtTime(){
+    return new Intl.DateTimeFormat("en-AU", {timeZone: TZ, hour:"numeric", minute:"2-digit"}).format(new Date());
+  }
+  function painBand(score){
+    if(score >= 7) return "critical";
+    if(score >= 4) return "warn";
+    return "good";
+  }
+  function painWord(score){
+    if(score === 0) return "No pain";
+    if(score <= 3) return "Mild";
+    if(score <= 6) return "Moderate";
+    return "Severe";
+  }
+
+  // ---------- Supabase <-> app-doc mapping ----------
+  // Keeps every render/collect function below working with the same
+  // camelCase "doc" shape the app always used, so the Supabase swap is
+  // isolated to this handful of functions.
+  function rowToDoc(row, activities){
+    return {
+      date: row.date,
+      painScore: row.pain_score || 0,
+      painTriggers: row.pain_triggers || [],
+      painTriggerOtherText: row.pain_trigger_other_text || "",
+      painTiming: row.pain_timing || null,
+      rehabSessionDone: !!row.rehab_session_done,
+      rehabNotes: row.rehab_notes || "",
+      stretchDone: !!row.stretch_done,
+      activities: activities || [],
+      officeHours: row.office_hours,
+      sittingBreaks: !!row.sitting_breaks,
+      sleepHours: row.sleep_hours,
+      medication: {
+        taken: !!row.medication_taken,
+        name: row.medication_name || "",
+        dose: row.medication_dose || "",
+        helped: row.medication_helped || null
+      },
+      notes: row.notes || ""
+    };
+  }
+  function docToEntryRow(doc){
+    return {
+      date: doc.date,
+      pain_score: doc.painScore,
+      pain_triggers: doc.painTriggers,
+      pain_trigger_other_text: doc.painTriggerOtherText,
+      pain_timing: doc.painTiming,
+      rehab_session_done: doc.rehabSessionDone,
+      rehab_notes: doc.rehabNotes,
+      stretch_done: doc.stretchDone,
+      office_hours: doc.officeHours,
+      sitting_breaks: doc.sittingBreaks,
+      sleep_hours: doc.sleepHours,
+      medication_taken: doc.medication.taken,
+      medication_name: doc.medication.name,
+      medication_dose: doc.medication.dose,
+      medication_helped: doc.medication.helped,
+      notes: doc.notes,
+      updated_at: new Date().toISOString()
+    };
+  }
+  function activityRowToObj(r){
+    return {
+      id: r.id, source: r.source, type: r.type, name: r.name,
+      durationMin: r.duration_min, distanceKm: r.distance_km, notes: r.notes
+    };
+  }
+
+  function showOffline(show){
+    el["offline-banner"].classList.toggle("show", !!show);
+  }
+
+  // ---------- element refs ----------
+  var el = {};
+  ["entry-date","offline-banner","pain-dial","pain-num","pain-word","pain-range",
+   "pain-triggers","other-trigger-wrap","pain-trigger-other","pain-timing","activities-list","add-activity-form","act-add-toggle",
+   "act-type","act-duration","act-notes","act-save","act-cancel",
+   "rehab-toggle","rehab-notes-wrap","rehab-notes","stretch-toggle",
+   "office-hours","sleep-hours","breaks-toggle",
+   "med-toggle","med-details-wrap","med-name","med-dose","med-helped",
+   "notes","save-btn","save-status","range-tabs","tiles","chart","tooltip",
+   "empty-trends","history-list","date-prev","date-next","date-today",
+   "view-tabs","tab-diary","tab-report","report-range-tabs","report-narrative",
+   "report-tiles","report-triggers","report-empty"
+  ].forEach(function(id){ el[id] = document.getElementById(id); });
+
+  // ---------- form <-> state ----------
+  function defaultDoc(dateId){
+    return {
+      date: dateId, painScore:0, painTriggers:[], painTriggerOtherText:"", painTiming:null,
+      rehabSessionDone:false, rehabNotes:"", stretchDone:false,
+      activities:[], officeHours:null, sittingBreaks:false, sleepHours:null,
+      medication:{taken:false,name:"",dose:"",helped:null}, notes:""
+    };
+  }
+
+  function renderForm(doc, loadedFromServer){
+    currentDoc = doc;
+    pendingActivities = (doc.activities || []).slice();
+    el["pain-range"].value = doc.painScore || 0;
+    updatePainDial(doc.painScore || 0);
+    var trig = doc.painTriggers || [];
+    el["pain-triggers"].querySelectorAll(".chip").forEach(function(b){
+      b.setAttribute("aria-pressed", trig.indexOf(b.dataset.trigger) > -1 ? "true":"false");
+    });
+    var otherOn = trig.indexOf("other") > -1;
+    el["other-trigger-wrap"].classList.toggle("open", otherOn);
+    el["pain-trigger-other"].value = doc.painTriggerOtherText || "";
+    el["pain-timing"].querySelectorAll("button").forEach(function(b){
+      b.setAttribute("aria-pressed", doc.painTiming === b.dataset.timing ? "true":"false");
+    });
+    el["rehab-toggle"].checked = !!doc.rehabSessionDone;
+    el["rehab-notes"].value = doc.rehabNotes || "";
+    el["rehab-notes-wrap"].classList.toggle("open", !!doc.rehabSessionDone);
+    el["stretch-toggle"].checked = !!doc.stretchDone;
+    el["office-hours"].value = doc.officeHours != null ? doc.officeHours : "";
+    el["sleep-hours"].value = doc.sleepHours != null ? doc.sleepHours : "";
+    el["breaks-toggle"].checked = !!doc.sittingBreaks;
+    var med = doc.medication || {};
+    el["med-toggle"].checked = !!med.taken;
+    el["med-details-wrap"].classList.toggle("open", !!med.taken);
+    el["med-name"].value = med.name || "";
+    el["med-dose"].value = med.dose || "";
+    el["med-helped"].querySelectorAll("button").forEach(function(b){
+      b.setAttribute("aria-pressed", med.helped === b.dataset.helped ? "true":"false");
+    });
+    el["notes"].value = doc.notes || "";
+    renderActivities();
+    el["save-status"].textContent = loadedFromServer ? "Loaded" : "Not saved yet";
+  }
+
+  function updatePainDial(score){
+    el["pain-num"].textContent = score;
+    el["pain-word"].textContent = painWord(score);
+    var band = painBand(score);
+    var color = band === "critical" ? "var(--critical)" : band === "warn" ? "var(--warn)" : "var(--good)";
+    el["pain-dial"].style.borderColor = color;
+    el["pain-word"].style.color = color;
+  }
+
+  function renderActivities(){
+    var list = el["activities-list"];
+    list.innerHTML = "";
+    if(!pendingActivities.length){
+      var p = document.createElement("div");
+      p.className = "hint";
+      p.style.margin = "0";
+      p.textContent = "No activity logged yet today.";
+      list.appendChild(p);
+      return;
+    }
+    pendingActivities.forEach(function(a){
+      var row = document.createElement("div");
+      row.className = "activity";
+      var dot = document.createElement("span");
+      dot.className = "dot " + (a.source === "strava" ? "strava" : "manual");
+      var body = document.createElement("div");
+      body.className = "body";
+      var name = document.createElement("div");
+      name.className = "name";
+      name.textContent = a.name || a.type || "Activity";
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      var bits = [];
+      if(a.durationMin) bits.push(a.durationMin + " min");
+      if(a.distanceKm) bits.push(a.distanceKm.toFixed(1) + " km");
+      if(a.notes) bits.push(a.notes);
+      bits.push(a.source === "strava" ? "Strava" : "Manual");
+      meta.textContent = bits.join(" · ");
+      body.appendChild(name); body.appendChild(meta);
+      var del = document.createElement("button");
+      del.type = "button";
+      del.setAttribute("aria-label","Remove activity");
+      del.textContent = "×";
+      del.addEventListener("click", function(){
+        pendingActivities = pendingActivities.filter(function(x){return x.id !== a.id;});
+        renderActivities();
+        sb.from("backtrack_activities").delete().eq("id", a.id).then(function(res){
+          if(res.error){ showOffline(true); }
+        });
+      });
+      row.appendChild(dot); row.appendChild(body); row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  function collectDoc(){
+    var trig = [];
+    el["pain-triggers"].querySelectorAll('.chip[aria-pressed="true"]').forEach(function(b){trig.push(b.dataset.trigger);});
+    var timingBtn = el["pain-timing"].querySelector('button[aria-pressed="true"]');
+    var helpedBtn = el["med-helped"].querySelector('button[aria-pressed="true"]');
+    return {
+      date: currentId,
+      painScore: parseInt(el["pain-range"].value, 10) || 0,
+      painTriggers: trig,
+      painTriggerOtherText: trig.indexOf("other") > -1 ? el["pain-trigger-other"].value.trim() : "",
+      painTiming: timingBtn ? timingBtn.dataset.timing : null,
+      rehabSessionDone: el["rehab-toggle"].checked,
+      rehabNotes: el["rehab-notes"].value.trim(),
+      stretchDone: el["stretch-toggle"].checked,
+      activities: pendingActivities,
+      officeHours: el["office-hours"].value === "" ? null : parseFloat(el["office-hours"].value),
+      sittingBreaks: el["breaks-toggle"].checked,
+      sleepHours: el["sleep-hours"].value === "" ? null : parseFloat(el["sleep-hours"].value),
+      medication: {
+        taken: el["med-toggle"].checked,
+        name: el["med-name"].value.trim(),
+        dose: el["med-dose"].value.trim(),
+        helped: helpedBtn ? helpedBtn.dataset.helped : null
+      },
+      notes: el["notes"].value.trim()
+    };
+  }
+
+  // ---------- interactions ----------
+  el["pain-range"].addEventListener("input", function(){ updatePainDial(parseInt(this.value,10)); });
+  el["pain-triggers"].addEventListener("click", function(e){
+    var b = e.target.closest(".chip"); if(!b) return;
+    var nowOn = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", nowOn ? "true":"false");
+    if(b.dataset.trigger === "other"){
+      el["other-trigger-wrap"].classList.toggle("open", nowOn);
+      if(nowOn) el["pain-trigger-other"].focus();
+      else el["pain-trigger-other"].value = "";
+    }
+  });
+  el["pain-timing"].addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    var already = b.getAttribute("aria-pressed") === "true";
+    el["pain-timing"].querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed","false");});
+    b.setAttribute("aria-pressed", already ? "false" : "true");
+  });
+  el["med-helped"].addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    var already = b.getAttribute("aria-pressed") === "true";
+    el["med-helped"].querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed","false");});
+    b.setAttribute("aria-pressed", already ? "false" : "true");
+  });
+  el["rehab-toggle"].addEventListener("change", function(){
+    el["rehab-notes-wrap"].classList.toggle("open", this.checked);
+  });
+  el["med-toggle"].addEventListener("change", function(){
+    el["med-details-wrap"].classList.toggle("open", this.checked);
+  });
+  el["act-add-toggle"].addEventListener("click", function(){
+    el["add-activity-form"].classList.add("open");
+    el["act-add-toggle"].style.display = "none";
+  });
+  el["act-cancel"].addEventListener("click", closeActivityForm);
+  function closeActivityForm(){
+    el["add-activity-form"].classList.remove("open");
+    el["act-add-toggle"].style.display = "block";
+    el["act-type"].value = ""; el["act-duration"].value = ""; el["act-notes"].value = "";
+  }
+  el["act-save"].addEventListener("click", function(){
+    var type = el["act-type"].value.trim();
+    if(!type) { el["act-type"].focus(); return; }
+    var durationVal = parseInt(el["act-duration"].value,10) || null;
+    var notesVal = el["act-notes"].value.trim();
+    el["act-save"].disabled = true;
+    sb.from("backtrack_activities").insert({
+      entry_date: currentId, source:"manual", type: type, name: type,
+      duration_min: durationVal, notes: notesVal
+    }).select().single().then(function(res){
+      el["act-save"].disabled = false;
+      if(res.error){ showOffline(true); return; }
+      showOffline(false);
+      pendingActivities.push(activityRowToObj(res.data));
+      renderActivities();
+      closeActivityForm();
+      refreshAllEntries();
+    }).catch(function(){ el["act-save"].disabled = false; showOffline(true); });
+  });
+
+  el["entry-date"].addEventListener("change", function(){
+    loadEntry(this.value);
+  });
+
+  el["save-btn"].addEventListener("click", function(){
+    var doc = collectDoc();
+    el["save-status"].textContent = "Saving…";
+    sb.from("backtrack_entries").upsert(docToEntryRow(doc), {onConflict:"date"}).then(function(res){
+      if(res.error){ el["save-status"].textContent = "Couldn't save"; showOffline(true); return; }
+      showOffline(false);
+      el["save-status"].textContent = "Saved ✓ " + fmtTime();
+      refreshAllEntries();
+    }).catch(function(){
+      el["save-status"].textContent = "Couldn't save";
+      showOffline(true);
+    });
+  });
+
+  // ---------- loading ----------
+  // The FIRST load on a date populates the form. A lightweight poll (today
+  // only) picks up new Strava-sourced activities written in the background
+  // by the scheduled sync, merging them in without touching anything else
+  // you're mid-typing. Navigating to a different date stops the poll.
+  function loadEntry(dateId){
+    currentId = dateId;
+    el["entry-date"].value = dateId;
+    el["date-today"].style.display = (dateId === todayId()) ? "none" : "inline-block";
+    el["date-next"].disabled = dateId >= todayId();
+    stopTodayPoll();
+    renderForm(defaultDoc(dateId), false);
+    Promise.all([
+      sb.from("backtrack_entries").select("*").eq("date", dateId).maybeSingle(),
+      sb.from("backtrack_activities").select("*").eq("entry_date", dateId).order("created_at")
+    ]).then(function(results){
+      if(currentId !== dateId) return; // navigated away before this resolved
+      var entryRes = results[0], actRes = results[1];
+      if(entryRes.error || actRes.error){ showOffline(true); return; }
+      showOffline(false);
+      var activities = (actRes.data || []).map(activityRowToObj);
+      var doc = entryRes.data ? rowToDoc(entryRes.data, activities) : defaultDoc(dateId);
+      doc.activities = activities;
+      renderForm(doc, !!entryRes.data || activities.length > 0);
+      if(dateId === todayId()) startTodayPoll();
+    }).catch(function(){ showOffline(true); });
+  }
+
+  function startTodayPoll(){
+    stopTodayPoll();
+    todayPollTimer = setInterval(function(){
+      if(currentId !== todayId()) return;
+      sb.from("backtrack_activities").select("*").eq("entry_date", currentId).order("created_at").then(function(res){
+        if(res.error || currentId !== todayId()) return;
+        var incoming = (res.data || []).map(activityRowToObj);
+        var existingIds = {};
+        pendingActivities.forEach(function(a){ existingIds[a.id] = true; });
+        var added = false;
+        incoming.forEach(function(a){
+          if(a.source === "strava" && !existingIds[a.id]){
+            pendingActivities.push(a);
+            existingIds[a.id] = true;
+            added = true;
+          }
+        });
+        if(added) renderActivities();
+      });
+    }, 45000);
+  }
+  function stopTodayPoll(){
+    if(todayPollTimer){ clearInterval(todayPollTimer); todayPollTimer = null; }
+  }
+
+  function shiftDate(deltaDays){
+    var d = new Date(currentId + "T00:00:00");
+    d.setDate(d.getDate() + deltaDays);
+    var f = new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit"});
+    var newId = f.format(d);
+    if(newId > todayId()) return; // no logging ahead
+    loadEntry(newId);
+  }
+  el["date-prev"].addEventListener("click", function(){ shiftDate(-1); });
+  el["date-next"].addEventListener("click", function(){ shiftDate(1); });
+  el["date-today"].addEventListener("click", function(){ loadEntry(todayId()); });
+
+  // ---------- trends ----------
+  el["range-tabs"].addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    el["range-tabs"].querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed","false");});
+    b.setAttribute("aria-pressed","true");
+    range = parseInt(b.dataset.range,10);
+    renderTrends();
+  });
+
+  function dayList(n){
+    var out = [];
+    var base = new Date(todayId() + "T00:00:00");
+    for(var i=n-1;i>=0;i--){
+      var d = new Date(base);
+      d.setDate(d.getDate()-i);
+      var f = new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit"});
+      out.push(f.format(d));
+    }
+    return out;
+  }
+
+  function renderTrends(){
+    var days = dayList(range);
+    var byDate = {};
+    allEntries.forEach(function(e){ byDate[e.date] = e; });
+    var series = days.map(function(d){ return byDate[d] || null; });
+    var haveAny = series.some(function(s){return s;});
+    el["empty-trends"].style.display = haveAny ? "none" : "block";
+    document.getElementById("chart").style.display = haveAny ? "block" : "none";
+
+    renderTiles(series);
+    renderChart(days, series);
+    renderHistory();
+    renderReport();
+  }
+
+  function avg(nums){ nums = nums.filter(function(n){return n!=null;}); if(!nums.length) return null; return nums.reduce(function(a,b){return a+b;},0)/nums.length; }
+
+  function renderTiles(series){
+    var last7 = series.slice(-7);
+    var painAvg = avg(last7.map(function(s){return s?s.painScore:null;}));
+    var sleepAvg = avg(last7.map(function(s){return s?s.sleepHours:null;}));
+    var rehabCount = last7.filter(function(s){return s && s.rehabSessionDone;}).length;
+    el["tiles"].innerHTML =
+      tile("Avg pain", painAvg==null?"–":painAvg.toFixed(1), "/10 · 7d") +
+      tile("Rehab sessions", rehabCount, "/7d · target 2") +
+      tile("Avg sleep", sleepAvg==null?"–":sleepAvg.toFixed(1), "hrs · 7d");
+  }
+  function tile(lbl,val,sub){
+    return '<div class="tile"><div class="lbl">'+lbl+'</div><div class="val">'+val+' <small>'+sub+'</small></div></div>';
+  }
+
+  function renderChart(days, series){
+    var svg = el["chart"];
+    var W=340,H=160, padL=22, padR=10, padT=10, padB=22;
+    var plotW = W-padL-padR, plotH = H-padT-padB;
+    var x = function(i){ return padL + (days.length<=1?0:(i/(days.length-1))*plotW); };
+    var y = function(v){ return padT + plotH - (v/10)*plotH; };
+    var parts = [];
+    // gridlines
+    [0,5,10].forEach(function(v){
+      parts.push('<line x1="'+padL+'" y1="'+y(v)+'" x2="'+(W-padR)+'" y2="'+y(v)+'" stroke="var(--line)" stroke-width="1"/>');
+      parts.push('<text x="'+(padL-6)+'" y="'+(y(v)+3)+'" text-anchor="end" font-size="8" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">'+v+'</text>');
+    });
+    // x labels: ~5 ticks
+    var step = Math.max(1, Math.round(days.length/5));
+    days.forEach(function(d,i){
+      if(i % step === 0 || i === days.length-1){
+        var anchor = "middle";
+        if(i === days.length-1) anchor = "end";
+        else if(i === 0) anchor = "start";
+        parts.push('<text x="'+x(i)+'" y="'+(H-6)+'" text-anchor="'+anchor+'" font-size="7.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">'+fmtShort(d)+'</text>');
+      }
+    });
+    // rehab session ticks
+    series.forEach(function(s,i){
+      if(s && s.rehabSessionDone){
+        parts.push('<circle cx="'+x(i)+'" cy="'+(H-padB+10)+'" r="2.6" fill="var(--ink-2)"/>');
+      }
+    });
+    // line segments (skip nulls)
+    var seg = [];
+    series.forEach(function(s,i){
+      if(s && s.painScore!=null){ seg.push(x(i)+","+y(s.painScore)); }
+      else if(seg.length){ parts.push(polyline(seg)); seg=[]; }
+    });
+    if(seg.length) parts.push(polyline(seg));
+    function polyline(pts){
+      return '<polyline points="'+pts.join(" ")+'" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+    }
+    // dots
+    series.forEach(function(s,i){
+      if(s && s.painScore!=null){
+        var band = painBand(s.painScore);
+        var c = band==="critical"?"var(--critical)":band==="warn"?"var(--warn)":"var(--good)";
+        parts.push('<circle cx="'+x(i)+'" cy="'+y(s.painScore)+'" r="3.4" fill="'+c+'" stroke="var(--surface)" stroke-width="1.4"/>');
+      }
+    });
+    svg.innerHTML = parts.join("");
+
+    // hover
+    var tip = el["tooltip"];
+    svg.onmousemove = function(evt){
+      var rect = svg.getBoundingClientRect();
+      var relX = (evt.clientX - rect.left) / rect.width * W;
+      var i = Math.round((relX - padL) / (plotW/(Math.max(1,days.length-1))));
+      i = Math.max(0, Math.min(days.length-1, i));
+      var s = series[i];
+      if(!s){ tip.classList.remove("show"); return; }
+      var px = (x(i)/W)*rect.width;
+      var py = (y(s.painScore)/H)*rect.height;
+      tip.style.left = px + "px";
+      tip.style.top = py + "px";
+      tip.innerHTML = "<b>"+fmtShort(days[i])+"</b> · pain "+s.painScore+"/10"+(s.rehabSessionDone?" · rehab ✓":"");
+      tip.classList.add("show");
+    };
+    svg.onmouseleave = function(){ tip.classList.remove("show"); };
+  }
+
+  function renderHistory(){
+    var list = el["history-list"];
+    list.innerHTML = "";
+    allEntries.slice(0, 10).forEach(function(e){
+      var row = document.createElement("div");
+      row.className = "hrow";
+      var band = painBand(e.painScore||0);
+      var actCount = e.activityCount || 0;
+      row.dataset.date = e.date;
+      row.innerHTML =
+        '<span class="d">'+fmtShort(e.date)+'</span>'+
+        '<span class="info">'+(actCount? actCount+" activity":"no activity") + (e.rehabSessionDone? " · rehab":"") + (e.stretchDone? " · stretched":"") + '</span>'+
+        '<span class="pill '+band+'">'+ (e.painScore!=null?e.painScore:"–") +'/10</span>';
+      list.appendChild(row);
+    });
+  }
+  el["history-list"].addEventListener("click", function(ev){
+    var row = ev.target.closest(".hrow"); if(!row || !row.dataset.date) return;
+    el["view-tabs"].querySelector('button[data-tab="diary"]').click();
+    loadEntry(row.dataset.date);
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+
+  // ---------- report ----------
+  function isoOffset(offsetDays){
+    var base = new Date(todayId() + "T00:00:00");
+    base.setDate(base.getDate() - offsetDays);
+    var f = new Intl.DateTimeFormat("en-CA",{year:"numeric",month:"2-digit",day:"2-digit"});
+    return f.format(base);
+  }
+  function getPeriodEntries(offsetDays, nDays){
+    var end = isoOffset(offsetDays);
+    var start = isoOffset(offsetDays + nDays - 1);
+    return allEntries.filter(function(e){ return e.date >= start && e.date <= end; });
+  }
+  function computeStats(entries, nDays){
+    return {
+      count: entries.length,
+      avgPain: avg(entries.map(function(e){return e.painScore;})),
+      rehabCount: entries.filter(function(e){return e.rehabSessionDone;}).length,
+      rehabTarget: Math.max(1, Math.round(nDays/7*2)),
+      stretchCount: entries.filter(function(e){return e.stretchDone;}).length,
+      avgSleep: avg(entries.map(function(e){return e.sleepHours;})),
+      avgOffice: avg(entries.map(function(e){return e.officeHours;})),
+      medDays: entries.filter(function(e){return e.medication && e.medication.taken;}).length
+    };
+  }
+  function tallyTriggers(entries){
+    var map = {};
+    var highPainEntries = entries.filter(function(e){ return (e.painScore||0) >= HIGH_PAIN_THRESHOLD; });
+    var highPainDates = {};
+    highPainEntries.forEach(function(e){ highPainDates[e.date] = true; });
+    entries.forEach(function(e){
+      (e.painTriggers||[]).forEach(function(t){
+        var key, label;
+        if(t === "other"){
+          var txt = (e.painTriggerOtherText||"").trim();
+          key = txt ? "other:"+txt.toLowerCase() : "other-unspecified";
+          label = txt || "Other";
+        } else {
+          key = t; label = TRIGGER_LABELS[t] || t;
+        }
+        if(!map[key]) map[key] = {label:label, total:0, highPain:0};
+        map[key].total++;
+        if(highPainDates[e.date]) map[key].highPain++;
+      });
+    });
+    var list = Object.keys(map).map(function(k){ return map[k]; });
+    list.sort(function(a,b){ return (b.highPain - a.highPain) || (b.total - a.total); });
+    return {list: list, highPainCount: highPainEntries.length};
+  }
+  function deltaHtml(curNum, prevNum, goodDir){
+    if(curNum == null || prevNum == null || isNaN(curNum) || isNaN(prevNum)) return "";
+    var diff = curNum - prevNum;
+    if(Math.abs(diff) < 0.05) return '<span class="delta flat">flat</span>';
+    var isUp = diff > 0;
+    var favorable = goodDir === "up" ? isUp : !isUp;
+    var arrow = isUp ? "↑" : "↓";
+    return '<span class="delta '+(favorable?"good":"bad")+'">'+arrow+' '+Math.abs(diff).toFixed(1)+'</span>';
+  }
+  function tileDelta(lbl, displayVal, sub, curNum, prevNum, goodDir){
+    return '<div class="tile"><div class="lbl">'+lbl+'</div><div class="val">'+displayVal+' <small>'+sub+'</small>'+deltaHtml(curNum,prevNum,goodDir)+'</div></div>';
+  }
+  function renderReport(){
+    if(!el["report-tiles"]) return;
+    var cur = getPeriodEntries(0, reportRange);
+    var prevEntries = getPeriodEntries(reportRange, reportRange);
+    if(cur.length === 0){
+      el["report-empty"].style.display = "block";
+      el["report-narrative"].style.display = "none";
+      el["report-tiles"].innerHTML = "";
+      el["report-triggers"].innerHTML = "";
+      return;
+    }
+    el["report-empty"].style.display = "none";
+    el["report-narrative"].style.display = "block";
+
+    var curStats = computeStats(cur, reportRange);
+    var prevStats = computeStats(prevEntries, reportRange);
+    var tally = tallyTriggers(cur);
+
+    var narrative;
+    if(tally.highPainCount === 0){
+      narrative = "No high-pain days (6+/10) this period — nothing jumping out to flag.";
+    } else {
+      var top = tally.list[0];
+      if(top && top.highPain >= 2 && (top.highPain/tally.highPainCount) >= 0.5){
+        narrative = top.label + " shows up on " + top.highPain + " of your " + tally.highPainCount + " high-pain day" + (tally.highPainCount===1?"":"s") + " this period — worth keeping an eye on.";
+      } else {
+        narrative = "No single trigger stands out across " + tally.highPainCount + " high-pain day" + (tally.highPainCount===1?"":"s") + " this period — pain looks fairly spread across different days.";
+      }
+    }
+    if(curStats.count >= Math.min(reportRange, 4)){
+      narrative += curStats.rehabCount >= curStats.rehabTarget
+        ? " Rehab sessions on track (" + curStats.rehabCount + "/" + curStats.rehabTarget + ")."
+        : " Rehab sessions behind target (" + curStats.rehabCount + "/" + curStats.rehabTarget + ").";
+    }
+    el["report-narrative"].textContent = narrative;
+
+    el["report-tiles"].innerHTML =
+      tileDelta("Avg pain", curStats.avgPain==null?"–":curStats.avgPain.toFixed(1), "/10", curStats.avgPain, prevStats.avgPain, "down") +
+      tileDelta("Rehab sessions", curStats.rehabCount, "/" + curStats.rehabTarget + " target", curStats.rehabCount, prevStats.rehabCount, "up") +
+      tileDelta("Stretch days", curStats.stretchCount, "/" + reportRange, curStats.stretchCount, prevStats.stretchCount, "up") +
+      tileDelta("Avg sleep", curStats.avgSleep==null?"–":curStats.avgSleep.toFixed(1), "hrs", curStats.avgSleep, prevStats.avgSleep, "up") +
+      tileDelta("Avg hours seated", curStats.avgOffice==null?"–":curStats.avgOffice.toFixed(1), "hrs", curStats.avgOffice, prevStats.avgOffice, "down") +
+      tileDelta("Medication days", curStats.medDays, "/" + reportRange, curStats.medDays, prevStats.medDays, "down");
+
+    if(!tally.list.length){
+      el["report-triggers"].innerHTML = '<div class="hint" style="margin:0;">No triggers tagged this period.</div>';
+    } else {
+      el["report-triggers"].innerHTML = tally.list.map(function(t){
+        var pct = Math.min(100, Math.round((t.total / curStats.count) * 100));
+        var flagged = tally.highPainCount > 0 && (t.highPain / tally.highPainCount) >= 0.5 && t.highPain >= 2;
+        var sub = t.highPain > 0
+          ? "On " + t.highPain + " of " + tally.highPainCount + " high-pain day" + (tally.highPainCount===1?"":"s")
+          : "No high-pain days";
+        return '<div class="trigger-row"><div class="bar-wrap"><div class="lbl-line"><span>'+t.label+'</span><span class="count">'+t.total+'/'+curStats.count+'</span></div><div class="bar-track"><div class="bar-fill'+(flagged?" flagged":"")+'" style="width:'+pct+'%"></div></div><div class="sub-line">'+sub+'</div></div></div>';
+      }).join("");
+    }
+  }
+
+  el["view-tabs"].addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    el["view-tabs"].querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected", x===b?"true":"false"); });
+    el["tab-diary"].hidden = b.dataset.tab !== "diary";
+    el["tab-report"].hidden = b.dataset.tab !== "report";
+    if(b.dataset.tab === "report") renderReport();
+  });
+  el["report-range-tabs"].addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    el["report-range-tabs"].querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed","false"); });
+    b.setAttribute("aria-pressed","true");
+    reportRange = parseInt(b.dataset.range,10);
+    renderReport();
+  });
+
+  // ---------- all-entries fetch (drives Trends/History/Report) ----------
+  function refreshAllEntries(){
+    return Promise.all([
+      sb.from("backtrack_entries").select("*").order("date", {ascending:false}).limit(200),
+      sb.from("backtrack_activities").select("entry_date")
+    ]).then(function(results){
+      var entriesRes = results[0], actRes = results[1];
+      if(entriesRes.error || actRes.error){ showOffline(true); return; }
+      showOffline(false);
+      var counts = {};
+      (actRes.data || []).forEach(function(r){ counts[r.entry_date] = (counts[r.entry_date]||0) + 1; });
+      allEntries = (entriesRes.data || []).map(function(row){
+        var doc = rowToDoc(row, []);
+        doc.activityCount = counts[row.date] || 0;
+        return doc;
+      });
+      renderTrends();
+    }).catch(function(){ showOffline(true); });
+  }
+
+  // ---------- boot ----------
+  function boot(){
+    loadEntry(todayId());
+    refreshAllEntries();
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
