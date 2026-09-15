@@ -324,6 +324,15 @@
             <button data-timing="variable" aria-pressed="false">Variable</button>
           </div>
         </div>
+        <div class="switchrow" style="margin-top:12px;">
+          <div class="txt"><b>Delayed from previous day(s)?</b><span>Soreness can lag behind the activity that caused it</span></div>
+          <label class="switch"><input type="checkbox" id="delayed-toggle"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="collapse" id="delayed-notes-wrap">
+          <div class="stack">
+            <input type="text" id="delayed-notes" class="pill-input" placeholder="e.g. Saturday's long ride, 2 days ago…" style="margin-top:8px;">
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -538,6 +547,8 @@
       painTriggers: row.pain_triggers || [],
       painTriggerOtherText: row.pain_trigger_other_text || "",
       painTiming: row.pain_timing || null,
+      delayedOnset: !!row.delayed_onset,
+      delayedOnsetNote: row.delayed_onset_note || "",
       rehabSessionDone: !!row.rehab_session_done,
       rehabNotes: row.rehab_notes || "",
       stretchDone: !!row.stretch_done,
@@ -561,6 +572,8 @@
       pain_triggers: doc.painTriggers,
       pain_trigger_other_text: doc.painTriggerOtherText,
       pain_timing: doc.painTiming,
+      delayed_onset: doc.delayedOnset,
+      delayed_onset_note: doc.delayedOnsetNote,
       rehab_session_done: doc.rehabSessionDone,
       rehab_notes: doc.rehabNotes,
       stretch_done: doc.stretchDone,
@@ -589,7 +602,7 @@
   // ---------- element refs ----------
   var el = {};
   ["entry-date","offline-banner","pain-dial","pain-num","pain-word","pain-range",
-   "pain-triggers","other-trigger-wrap","pain-trigger-other","pain-timing","activities-list","add-activity-form","act-add-toggle",
+   "pain-triggers","other-trigger-wrap","pain-trigger-other","pain-timing","delayed-toggle","delayed-notes-wrap","delayed-notes","activities-list","add-activity-form","act-add-toggle",
    "act-type","act-duration","act-notes","act-save","act-cancel",
    "rehab-toggle","rehab-notes-wrap","rehab-notes","stretch-toggle",
    "office-hours","sleep-hours","breaks-toggle",
@@ -604,6 +617,7 @@
   function defaultDoc(dateId){
     return {
       date: dateId, painScore:0, painTriggers:[], painTriggerOtherText:"", painTiming:null,
+      delayedOnset:false, delayedOnsetNote:"",
       rehabSessionDone:false, rehabNotes:"", stretchDone:false,
       activities:[], officeHours:null, sittingBreaks:false, sleepHours:null,
       medication:{taken:false,name:"",dose:"",helped:null}, notes:""
@@ -625,6 +639,9 @@
     el["pain-timing"].querySelectorAll("button").forEach(function(b){
       b.setAttribute("aria-pressed", doc.painTiming === b.dataset.timing ? "true":"false");
     });
+    el["delayed-toggle"].checked = !!doc.delayedOnset;
+    el["delayed-notes-wrap"].classList.toggle("open", !!doc.delayedOnset);
+    el["delayed-notes"].value = doc.delayedOnsetNote || "";
     el["rehab-toggle"].checked = !!doc.rehabSessionDone;
     el["rehab-notes"].value = doc.rehabNotes || "";
     el["rehab-notes-wrap"].classList.toggle("open", !!doc.rehabSessionDone);
@@ -711,6 +728,8 @@
       painTriggers: trig,
       painTriggerOtherText: trig.indexOf("other") > -1 ? el["pain-trigger-other"].value.trim() : "",
       painTiming: timingBtn ? timingBtn.dataset.timing : null,
+      delayedOnset: el["delayed-toggle"].checked,
+      delayedOnsetNote: el["delayed-toggle"].checked ? el["delayed-notes"].value.trim() : "",
       rehabSessionDone: el["rehab-toggle"].checked,
       rehabNotes: el["rehab-notes"].value.trim(),
       stretchDone: el["stretch-toggle"].checked,
@@ -751,6 +770,11 @@
     var already = b.getAttribute("aria-pressed") === "true";
     el["med-helped"].querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed","false");});
     b.setAttribute("aria-pressed", already ? "false" : "true");
+  });
+  el["delayed-toggle"].addEventListener("change", function(){
+    el["delayed-notes-wrap"].classList.toggle("open", this.checked);
+    if(this.checked) el["delayed-notes"].focus();
+    else el["delayed-notes"].value = "";
   });
   el["rehab-toggle"].addEventListener("change", function(){
     el["rehab-notes-wrap"].classList.toggle("open", this.checked);
@@ -1001,7 +1025,7 @@
       row.dataset.date = e.date;
       row.innerHTML =
         '<span class="d">'+fmtShort(e.date)+'</span>'+
-        '<span class="info">'+(actCount? actCount+" activity":"no activity") + (e.rehabSessionDone? " · rehab":"") + (e.stretchDone? " · stretched":"") + '</span>'+
+        '<span class="info">'+(actCount? actCount+" activity":"no activity") + (e.rehabSessionDone? " · rehab":"") + (e.stretchDone? " · stretched":"") + (e.delayedOnset? " · delayed":"") + '</span>'+
         '<span class="pill '+band+'">'+ (e.painScore!=null?e.painScore:"–") +'/10</span>';
       list.appendChild(row);
     });
@@ -1034,7 +1058,8 @@
       stretchCount: entries.filter(function(e){return e.stretchDone;}).length,
       avgSleep: avg(entries.map(function(e){return e.sleepHours;})),
       avgOffice: avg(entries.map(function(e){return e.officeHours;})),
-      medDays: entries.filter(function(e){return e.medication && e.medication.taken;}).length
+      medDays: entries.filter(function(e){return e.medication && e.medication.taken;}).length,
+      delayedOnsetDays: entries.filter(function(e){return e.delayedOnset;}).length
     };
   }
   function tallyTriggers(entries){
@@ -1115,7 +1140,8 @@
       tileDelta("Stretch days", curStats.stretchCount, "/" + reportRange, curStats.stretchCount, prevStats.stretchCount, "up") +
       tileDelta("Avg sleep", curStats.avgSleep==null?"–":curStats.avgSleep.toFixed(1), "hrs", curStats.avgSleep, prevStats.avgSleep, "up") +
       tileDelta("Avg hours seated", curStats.avgOffice==null?"–":curStats.avgOffice.toFixed(1), "hrs", curStats.avgOffice, prevStats.avgOffice, "down") +
-      tileDelta("Medication days", curStats.medDays, "/" + reportRange, curStats.medDays, prevStats.medDays, "down");
+      tileDelta("Medication days", curStats.medDays, "/" + reportRange, curStats.medDays, prevStats.medDays, "down") +
+      tileDelta("Delayed-onset days", curStats.delayedOnsetDays, "/" + reportRange, curStats.delayedOnsetDays, prevStats.delayedOnsetDays, "down");
 
     if(!tally.list.length){
       el["report-triggers"].innerHTML = '<div class="hint" style="margin:0;">No triggers tagged this period.</div>';
