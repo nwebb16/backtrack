@@ -211,12 +211,33 @@
   .legend .item{display:flex; align-items:center; gap:6px; font-size:0.74rem; color:var(--ink-2);}
   .legend .swatch{width:10px; height:10px; border-radius:3px;}
 
-  .history{display:flex; flex-direction:column; gap:6px; margin-top:16px;}
-  .hrow{display:grid; grid-template-columns:52px minmax(0,1fr) auto; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid var(--line); font-size:0.82rem; cursor:pointer; min-width:0;}
-  .hrow:last-child{border-bottom:none;}
-  .hrow:hover{background:var(--surface-2);}
-  .hrow .d{font-family:"IBM Plex Mono",monospace; color:var(--ink-2); font-size:0.76rem;}
-  .hrow .info{color:var(--muted); font-size:0.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .calwrap{margin-top:18px;}
+  .calhead{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;}
+  .calhead button{width:32px; height:32px; flex:none; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink-2); font-size:1.1rem; line-height:1; cursor:pointer;}
+  .calhead button:disabled{opacity:0.35; cursor:default;}
+  .calmonth{font-size:0.9rem; font-weight:600; text-align:center; flex:1;}
+  .caldow{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:5px;}
+  .caldow span{text-align:center; font-size:0.62rem; letter-spacing:0.06em; color:var(--muted); text-transform:uppercase;}
+  .calgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .calcell{position:relative; aspect-ratio:1; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-size:0.72rem; background:var(--surface-2); color:var(--muted); border:1px solid transparent;}
+  .calcell.blank{background:none;}
+  .calcell.logged{cursor:pointer;}
+  .calcell.logged:hover{filter:brightness(0.95);}
+  .calcell.good{background:var(--good-wash); color:var(--good);}
+  .calcell.warn{background:var(--warn-wash); color:var(--warn);}
+  .calcell.critical{background:var(--critical-wash); color:var(--critical);}
+  .calcell.today{border-color:var(--accent);}
+  .calcell.future{opacity:0.35;}
+  .calcell .rdot{position:absolute; bottom:4px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--ink-2);}
+  .callegend{display:flex; flex-wrap:wrap; gap:10px 14px; margin-top:12px; font-size:0.7rem; color:var(--muted);}
+  .callegend .item{display:flex; align-items:center; gap:5px;}
+  .callegend .sw{width:11px; height:11px; border-radius:3px; display:inline-block;}
+  .callegend .sw.good{background:var(--good-wash); border:1px solid var(--good);}
+  .callegend .sw.warn{background:var(--warn-wash); border:1px solid var(--warn);}
+  .callegend .sw.critical{background:var(--critical-wash); border:1px solid var(--critical);}
+  .callegend .sw.none{background:var(--surface-2);}
+  .callegend .rdot{width:4px; height:4px; border-radius:50%; background:var(--ink-2); display:inline-block;}
   .pill{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:0.76rem; border-radius:999px; padding:3px 9px; width:fit-content;}
   .pill.good{background:var(--good-wash); color:var(--good);}
   .pill.warn{background:var(--warn-wash); color:var(--warn);}
@@ -455,7 +476,22 @@
           <h3>Nothing to chart yet</h3>
           <p>Log a few nights and your pain trend, rehab adherence and sleep will build up here.</p>
         </div>
-        <div class="history" id="history-list"></div>
+        <div class="calwrap">
+          <div class="calhead">
+            <button type="button" id="cal-prev" aria-label="Previous month">‹</button>
+            <span class="calmonth" id="cal-month"></span>
+            <button type="button" id="cal-next" aria-label="Next month">›</button>
+          </div>
+          <div class="caldow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+          <div class="calgrid" id="cal-grid"></div>
+          <div class="callegend">
+            <span class="item"><i class="sw good"></i>0–3</span>
+            <span class="item"><i class="sw warn"></i>4–6</span>
+            <span class="item"><i class="sw critical"></i>7–10</span>
+            <span class="item"><i class="sw none"></i>not logged</span>
+            <span class="item"><i class="rdot"></i>rehab</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -608,7 +644,7 @@
    "office-hours","sleep-hours","breaks-toggle",
    "med-toggle","med-details-wrap","med-name","med-dose","med-helped",
    "notes","save-btn","save-status","range-tabs","tiles","chart","tooltip",
-   "empty-trends","history-list","date-prev","date-next","date-today",
+   "empty-trends","cal-prev","cal-next","cal-month","cal-grid","date-prev","date-next","date-today",
    "view-tabs","tab-diary","tab-report","report-range-tabs","report-narrative",
    "report-tiles","report-triggers","report-empty"
   ].forEach(function(id){ el[id] = document.getElementById(id); });
@@ -1014,26 +1050,101 @@
     svg.onmouseleave = function(){ tip.classList.remove("show"); };
   }
 
-  function renderHistory(){
-    var list = el["history-list"];
-    list.innerHTML = "";
-    allEntries.slice(0, 10).forEach(function(e){
-      var row = document.createElement("div");
-      row.className = "hrow";
-      var band = painBand(e.painScore||0);
-      var actCount = e.activityCount || 0;
-      row.dataset.date = e.date;
-      row.innerHTML =
-        '<span class="d">'+fmtShort(e.date)+'</span>'+
-        '<span class="info">'+(actCount? actCount+" activity":"no activity") + (e.rehabSessionDone? " · rehab":"") + (e.stretchDone? " · stretched":"") + (e.delayedOnset? " · delayed":"") + '</span>'+
-        '<span class="pill '+band+'">'+ (e.painScore!=null?e.painScore:"–") +'/10</span>';
-      list.appendChild(row);
-    });
+  // ---------- history calendar ----------
+  var calY = null, calM = null;  // year, month index (0-11) currently shown
+
+  function pad2(n){ return (n < 10 ? "0" : "") + n; }
+  function dateId(y, m, d){ return y + "-" + pad2(m+1) + "-" + pad2(d); }
+
+  function ensureCalMonth(){
+    if(calY === null){
+      var t = todayId().split("-");
+      calY = parseInt(t[0], 10);
+      calM = parseInt(t[1], 10) - 1;
+    }
   }
-  el["history-list"].addEventListener("click", function(ev){
-    var row = ev.target.closest(".hrow"); if(!row || !row.dataset.date) return;
+
+  function shiftCalMonth(delta){
+    ensureCalMonth();
+    var d = new Date(calY, calM + delta, 1);
+    calY = d.getFullYear();
+    calM = d.getMonth();
+    renderHistory();
+  }
+
+  function renderHistory(){
+    ensureCalMonth();
+    var grid = el["cal-grid"];
+    if(!grid) return;
+    grid.innerHTML = "";
+
+    var byDate = {};
+    allEntries.forEach(function(e){ byDate[e.date] = e; });
+
+    var today = todayId();
+    var todayParts = today.split("-");
+    var curY = parseInt(todayParts[0], 10), curM = parseInt(todayParts[1], 10) - 1;
+
+    el["cal-month"].textContent =
+      new Date(calY, calM, 1).toLocaleDateString("en-AU", {month:"long", year:"numeric"});
+    // can't go forward past the current month
+    el["cal-next"].disabled = (calY > curY) || (calY === curY && calM >= curM);
+
+    // leading blanks so the 1st lands on the right weekday (week starts Monday)
+    var offset = (new Date(calY, calM, 1).getDay() + 6) % 7;
+    for(var b = 0; b < offset; b++){
+      var blank = document.createElement("div");
+      blank.className = "calcell blank";
+      grid.appendChild(blank);
+    }
+
+    var daysInMonth = new Date(calY, calM + 1, 0).getDate();
+    for(var d = 1; d <= daysInMonth; d++){
+      var id = dateId(calY, calM, d);
+      var entry = byDate[id];
+      var cell = document.createElement("div");
+      var cls = "calcell";
+
+      if(entry){
+        cls += " logged " + painBand(entry.painScore || 0);
+      } else if(id <= today){
+        cls += " logged";           // openable so a missed day can still be filled in
+      } else {
+        cls += " future";
+      }
+      if(id === today) cls += " today";
+      cell.className = cls;
+      cell.textContent = d;
+
+      if(id <= today){
+        cell.dataset.date = id;
+        var bits = [fmtShort(id)];
+        if(entry){
+          bits.push("pain " + (entry.painScore != null ? entry.painScore : "–") + "/10");
+          if(entry.rehabSessionDone) bits.push("rehab");
+          if(entry.stretchDone) bits.push("stretched");
+          if(entry.delayedOnset) bits.push("delayed onset");
+          if(entry.activityCount) bits.push(entry.activityCount + " activity");
+        } else {
+          bits.push("nothing logged");
+        }
+        cell.title = bits.join(" · ");
+      }
+      if(entry && entry.rehabSessionDone){
+        var dot = document.createElement("i");
+        dot.className = "rdot";
+        cell.appendChild(dot);
+      }
+      grid.appendChild(cell);
+    }
+  }
+
+  el["cal-prev"].addEventListener("click", function(){ shiftCalMonth(-1); });
+  el["cal-next"].addEventListener("click", function(){ shiftCalMonth(1); });
+  el["cal-grid"].addEventListener("click", function(ev){
+    var cell = ev.target.closest(".calcell"); if(!cell || !cell.dataset.date) return;
     el["view-tabs"].querySelector('button[data-tab="diary"]').click();
-    loadEntry(row.dataset.date);
+    loadEntry(cell.dataset.date);
     window.scrollTo({top:0, behavior:"smooth"});
   });
 
@@ -1175,7 +1286,7 @@
   // ---------- all-entries fetch (drives Trends/History/Report) ----------
   function refreshAllEntries(){
     return Promise.all([
-      sb.from("backtrack_entries").select("*").order("date", {ascending:false}).limit(200),
+      sb.from("backtrack_entries").select("*").order("date", {ascending:false}).limit(1000),
       sb.from("backtrack_activities").select("entry_date")
     ]).then(function(results){
       var entriesRes = results[0], actRes = results[1];
