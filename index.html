@@ -167,6 +167,27 @@
   input[type="number"]{font-family:"IBM Plex Mono",monospace;}
   .collapse{max-height:0; overflow:hidden; transition:max-height .2s ease; }
   .collapse.open{max-height:640px;}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .ci-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px;}
+  .ci-head .btn{flex:none; white-space:nowrap;}
+  .checkins{display:flex; flex-direction:column; gap:6px;}
+  .ci-row{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:8px 10px;}
+  .ci-row .t{font-family:"IBM Plex Mono",monospace; font-size:0.78rem; color:var(--ink-2); flex:none; width:58px;}
+  .ci-row .body{flex:1; min-width:0;}
+  .ci-row .what{font-size:0.84rem; font-weight:600;}
+  .ci-row .note{font-size:0.74rem; color:var(--muted); overflow-wrap:anywhere;}
+  .ci-row .scores{display:flex; gap:4px; flex:none;}
+  .ci-row button{border:none; background:none; color:var(--muted); cursor:pointer; font-size:1rem; line-height:1; padding:4px;}
+  .sheet-scrim{position:fixed; inset:0; background:rgba(10,20,16,0.45); z-index:20; display:flex; align-items:flex-end; justify-content:center;}
+  .sheet-scrim[hidden]{display:none;}
+  .sheet{background:var(--surface); width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom)); box-shadow:var(--shadow); max-height:92vh; overflow-y:auto;}
+  .sheet-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;}
+  .ci-time{font-size:0.8rem; color:var(--ink-2); display:flex; align-items:center; gap:6px;}
+  .ci-time input{font-family:"IBM Plex Mono",monospace; font-size:0.95rem; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:5px 8px;}
+  .ci-slider{margin-bottom:16px;}
+  .ci-lbl{display:flex; justify-content:space-between; align-items:baseline; font-size:0.86rem; font-weight:600; margin-bottom:8px;}
+  .ci-lbl b{font-size:1.2rem;}
+  .sheet-foot{display:flex; gap:10px; justify-content:flex-end; margin-top:16px;}
   .divider{height:1px; background:var(--line); margin:18px 0 16px;}
   .sublbl{font-size:0.72rem; color:var(--ink-2); text-transform:uppercase; letter-spacing:0.05em;}
   .linkbtn{border:none; background:none; padding:2px 0 0; color:var(--accent-strong); font-family:"Public Sans"; font-size:0.76rem; text-decoration:underline; cursor:pointer; text-align:left; width:fit-content;}
@@ -318,8 +339,19 @@
     <div class="entry">
 
       <div class="card">
-        <h2>How's the back today?</h2>
-        <div class="hint">Pain and stiffness are logged separately — a day can be stiff without hurting.</div>
+        <div class="ci-head">
+          <div>
+            <h2>How's the back today?</h2>
+            <div class="hint" style="margin-bottom:0;">Check in when you notice it — after a run, getting up from the desk, before bed.</div>
+          </div>
+          <button type="button" class="btn primary" id="ci-open">＋ Check in</button>
+        </div>
+        <div class="checkins" id="checkin-list"></div>
+
+        <div class="divider"></div>
+
+        <span class="sublbl" id="peak-label">Worst today</span>
+        <div class="hint" id="peak-hint" style="margin:2px 0 10px;"></div>
         <div class="pain-head">
           <div class="pain-dial" id="pain-dial"><span class="num mono" id="pain-num">0</span></div>
           <div class="pain-meta">
@@ -329,9 +361,7 @@
         </div>
         <input type="range" id="pain-range" min="0" max="10" step="1" value="0">
 
-        <div class="divider"></div>
-
-        <div class="pain-head">
+        <div class="pain-head" style="margin-top:16px;">
           <div class="pain-dial" id="stiff-dial"><span class="num mono" id="stiff-num">–</span></div>
           <div class="pain-meta">
             <span class="pain-word" id="stiff-word">Not recorded</span>
@@ -340,24 +370,6 @@
           </div>
         </div>
         <input type="range" id="stiff-range" min="0" max="10" step="1" value="0">
-        <div class="collapse" id="stiff-details-wrap">
-          <div class="stack">
-            <span class="sublbl">Stiffest when</span>
-            <div class="seg" id="stiff-timing" role="group" aria-label="Stiffness timing">
-              <button data-val="morning" aria-pressed="false">Morning</button>
-              <button data-val="after-sitting" aria-pressed="false">After sitting</button>
-              <button data-val="after-exercise" aria-pressed="false">After exercise</button>
-              <button data-val="all-day" aria-pressed="false">All day</button>
-            </div>
-            <span class="sublbl">Loosened up after</span>
-            <div class="seg" id="stiff-eased" role="group" aria-label="Time for stiffness to ease">
-              <button data-val="under-30" aria-pressed="false">&lt;30 min</button>
-              <button data-val="30-60" aria-pressed="false">30–60 min</button>
-              <button data-val="over-60" aria-pressed="false">1 hr+</button>
-              <button data-val="didnt" aria-pressed="false">Didn't</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div class="card">
@@ -590,6 +602,39 @@
   <div class="footer-note">Tip: use your phone browser's "Add to Home Screen" to give Backtrack its own icon.</div>
 </div>
 
+<div class="sheet-scrim" id="ci-sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ci-title">
+    <div class="sheet-head">
+      <h2 id="ci-title">Check in</h2>
+      <label class="ci-time">at <input type="time" id="ci-time"></label>
+    </div>
+    <div class="ci-slider">
+      <div class="ci-lbl"><span>Pain</span><b class="mono" id="ci-pain-num">0</b></div>
+      <input type="range" id="ci-pain" min="0" max="10" step="1" value="0">
+    </div>
+    <div class="ci-slider">
+      <div class="ci-lbl"><span>Stiffness</span><b class="mono" id="ci-stiff-num">0</b></div>
+      <input type="range" id="ci-stiff" min="0" max="10" step="1" value="0">
+    </div>
+    <span class="sublbl">What are you doing? <span style="text-transform:none; letter-spacing:0;">(optional)</span></span>
+    <div class="chips" id="ci-context" role="group" aria-label="What you're doing" style="margin-top:6px;">
+      <button class="chip" data-ctx="sleep" aria-pressed="false">Sleep</button>
+      <button class="chip" data-ctx="ride" aria-pressed="false">Ride</button>
+      <button class="chip" data-ctx="run" aria-pressed="false">Run</button>
+      <button class="chip" data-ctx="swim" aria-pressed="false">Swim</button>
+      <button class="chip" data-ctx="gym" aria-pressed="false">Gym</button>
+      <button class="chip" data-ctx="sitting" aria-pressed="false">Sitting</button>
+      <button class="chip" data-ctx="yard-work" aria-pressed="false">Yard work</button>
+      <button class="chip" data-ctx="other" aria-pressed="false">Other</button>
+    </div>
+    <input type="text" id="ci-note" class="pill-input" placeholder="Note (optional) — e.g. last 2km of the run…" style="margin-top:12px;">
+    <div class="sheet-foot">
+      <button type="button" class="btn" id="ci-cancel">Cancel</button>
+      <button type="button" class="btn primary" id="ci-save">Save check-in</button>
+    </div>
+  </div>
+</div>
+
 <div class="savebar">
   <div class="savebar-inner">
     <span class="save-status" id="save-status">Not saved yet</span>
@@ -664,8 +709,6 @@
       delayedTriggerOtherText: row.delayed_trigger_other_text || "",
       delayedDaysAgo: row.delayed_days_ago != null ? row.delayed_days_ago : null,
       stiffnessScore: row.stiffness_score != null ? row.stiffness_score : null,
-      stiffnessTiming: row.stiffness_timing || null,
-      stiffnessEased: row.stiffness_eased || null,
       activityImpact: row.activity_impact || null,
       activityImpactNote: row.activity_impact_note || "",
       rehabSessionDone: !!row.rehab_session_done,
@@ -697,8 +740,6 @@
       delayed_trigger_other_text: doc.delayedTriggerOtherText,
       delayed_days_ago: doc.delayedDaysAgo,
       stiffness_score: doc.stiffnessScore,
-      stiffness_timing: doc.stiffnessTiming,
-      stiffness_eased: doc.stiffnessEased,
       activity_impact: doc.activityImpact,
       activity_impact_note: doc.activityImpactNote,
       rehab_session_done: doc.rehabSessionDone,
@@ -730,7 +771,8 @@
   var el = {};
   ["entry-date","offline-banner","pain-dial","pain-num","pain-word","pain-range",
    "pain-triggers","other-trigger-wrap","pain-trigger-other","pain-timing","delayed-toggle","delayed-notes-wrap","delayed-notes","activities-list","add-activity-form","act-add-toggle",
-   "stiff-dial","stiff-num","stiff-word","stiff-range","stiff-none","stiff-details-wrap","stiff-timing","stiff-eased",
+   "stiff-dial","stiff-num","stiff-word","stiff-range","stiff-none",
+   "ci-open","checkin-list","peak-hint","ci-sheet","ci-time","ci-pain","ci-pain-num","ci-stiff","ci-stiff-num","ci-context","ci-note","ci-cancel","ci-save",
    "delayed-triggers","delayed-other-wrap","delayed-trigger-other","delayed-days",
    "activity-impact","impact-note-wrap","impact-note",
    "act-type","act-duration","act-notes","act-save","act-cancel",
@@ -749,7 +791,7 @@
       date: dateId, painScore:0, painTriggers:[], painTriggerOtherText:"", painTiming:null,
       delayedOnset:false, delayedOnsetNote:"",
       delayedTriggers:[], delayedTriggerOtherText:"", delayedDaysAgo:null,
-      stiffnessScore:null, stiffnessTiming:null, stiffnessEased:null,
+      stiffnessScore:null,
       activityImpact:null, activityImpactNote:"",
       rehabSessionDone:false, rehabNotes:"", stretchDone:false,
       activities:[], officeHours:null, sittingBreaks:false, sleepHours:null,
@@ -781,8 +823,6 @@
     el["delayed-trigger-other"].value = doc.delayedTriggerOtherText || "";
     setSeg(el["delayed-days"], doc.delayedDaysAgo);
     setStiffness(doc.stiffnessScore);
-    setSeg(el["stiff-timing"], doc.stiffnessTiming);
-    setSeg(el["stiff-eased"], doc.stiffnessEased);
     setSeg(el["activity-impact"], doc.activityImpact);
     el["impact-note"].value = doc.activityImpactNote || "";
     updateImpactNote();
@@ -818,6 +858,119 @@
   // Stiffness starts as null ("not recorded") rather than 0, so days logged
   // before stiffness existed — or days you skip it — don't count as 0.
   var stiffScore = null;
+
+  // ---------- check-ins ----------
+  // Rated in the moment, several a day. Saved straight away (like
+  // activities); the day's "worst today" sliders follow their peak.
+  var dayCheckins = [];
+  var CTX_LABELS = {
+    "sleep":"Sleep", "ride":"Ride", "run":"Run", "swim":"Swim", "gym":"Gym",
+    "sitting":"Sitting", "yard-work":"Yard work", "other":"Other"
+  };
+  function checkinPeak(list){
+    if(!list.length) return null;
+    var p = 0, st = 0;
+    list.forEach(function(c){ p = Math.max(p, c.pain_score); st = Math.max(st, c.stiffness_score); });
+    return {pain:p, stiff:st};
+  }
+  function fmtClock(iso){
+    return new Intl.DateTimeFormat("en-AU", {timeZone: TZ, hour:"numeric", minute:"2-digit"}).format(new Date(iso));
+  }
+  function nowHHMM(){
+    var hm = new Intl.DateTimeFormat("en-GB", {timeZone: TZ, hour:"2-digit", minute:"2-digit", hour12:false}).format(new Date());
+    return hm.replace(/^24/, "00");
+  }
+  function scorePill(prefix, v){
+    return '<span class="pill '+painBand(v)+'">'+prefix+' '+v+'</span>';
+  }
+  function renderCheckins(){
+    var list = el["checkin-list"];
+    list.innerHTML = "";
+    var pk = checkinPeak(dayCheckins);
+    el["peak-hint"].textContent = pk
+      ? "Set from your check-ins — raise it if it got worse at a time you didn't check in."
+      : "No check-ins for this day — set these from memory, or tap Check in.";
+    dayCheckins.slice().sort(function(a,b){ return a.taken_at < b.taken_at ? -1 : 1; }).forEach(function(c){
+      var row = document.createElement("div");
+      row.className = "ci-row";
+      var t = document.createElement("span");
+      t.className = "t"; t.textContent = fmtClock(c.taken_at);
+      var body = document.createElement("div");
+      body.className = "body";
+      var what = document.createElement("div");
+      what.className = "what"; what.textContent = CTX_LABELS[c.context] || "Check-in";
+      body.appendChild(what);
+      if(c.note){
+        var note = document.createElement("div");
+        note.className = "note"; note.textContent = c.note;
+        body.appendChild(note);
+      }
+      var scores = document.createElement("div");
+      scores.className = "scores";
+      scores.innerHTML = scorePill("P", c.pain_score) + scorePill("S", c.stiffness_score);
+      var del = document.createElement("button");
+      del.type = "button"; del.setAttribute("aria-label","Remove check-in"); del.textContent = "×";
+      del.addEventListener("click", function(){
+        dayCheckins = dayCheckins.filter(function(x){ return x.id !== c.id; });
+        renderCheckins();
+        applyCheckinPeak();
+        sb.from("backtrack_checkins").delete().eq("id", c.id).then(function(res){
+          if(res.error){ showOffline(true); return; }
+          refreshAllEntries();
+        });
+      });
+      row.appendChild(t); row.appendChild(body); row.appendChild(scores); row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+  function applyCheckinPeak(){
+    var pk = checkinPeak(dayCheckins);
+    if(!pk) return;
+    el["pain-range"].value = pk.pain; updatePainDial(pk.pain);
+    setStiffness(pk.stiff);
+  }
+  function setChipsBy(container, attr, val){
+    container.querySelectorAll(".chip").forEach(function(b){
+      b.setAttribute("aria-pressed", b.dataset[attr] === val ? "true" : "false");
+    });
+  }
+  function openCheckin(){
+    el["ci-time"].value = currentId === todayId() ? nowHHMM() : "12:00";
+    el["ci-pain"].value = 0; el["ci-pain-num"].textContent = "0";
+    el["ci-stiff"].value = 0; el["ci-stiff-num"].textContent = "0";
+    setChipsBy(el["ci-context"], "ctx", null);
+    el["ci-note"].value = "";
+    el["ci-save"].disabled = false;
+    el["ci-sheet"].hidden = false;
+  }
+  function closeCheckin(){ el["ci-sheet"].hidden = true; }
+  function saveCheckin(){
+    var time = el["ci-time"].value || nowHHMM();
+    var ctxBtn = el["ci-context"].querySelector('.chip[aria-pressed="true"]');
+    var row = {
+      entry_date: currentId,
+      taken_at: currentId + "T" + time + ":00+10:00", // Brisbane has no daylight saving
+      pain_score: parseInt(el["ci-pain"].value, 10) || 0,
+      stiffness_score: parseInt(el["ci-stiff"].value, 10) || 0,
+      context: ctxBtn ? ctxBtn.dataset.ctx : null,
+      note: el["ci-note"].value.trim()
+    };
+    var dateAtSave = currentId;
+    el["ci-save"].disabled = true;
+    sb.from("backtrack_checkins").insert(row).select().single().then(function(res){
+      el["ci-save"].disabled = false;
+      if(res.error){ showOffline(true); return; }
+      showOffline(false);
+      closeCheckin();
+      if(currentId === dateAtSave){
+        dayCheckins.push(res.data);
+        renderCheckins();
+        applyCheckinPeak();
+        el["save-status"].textContent = "Check-in saved ✓";
+      }
+      refreshAllEntries();
+    }).catch(function(){ el["ci-save"].disabled = false; showOffline(true); });
+  }
   function stiffWord(score){
     if(score === 0) return "No stiffness";
     if(score <= 3) return "Mild";
@@ -834,7 +987,6 @@
     el["stiff-dial"].style.borderColor = color;
     el["stiff-word"].style.color = recorded ? color : "var(--muted)";
     el["stiff-none"].style.display = recorded ? "none" : "block";
-    el["stiff-details-wrap"].classList.toggle("open", recorded && score > 0);
   }
   function bandColor(band){
     return band === "critical" ? "var(--critical)" : band === "warn" ? "var(--warn)" : "var(--good)";
@@ -942,7 +1094,6 @@
     var dTrig = delayedOn ? getChips(el["delayed-triggers"]) : [];
     var dDays = delayedOn ? getSeg(el["delayed-days"]) : null;
     var impact = getSeg(el["activity-impact"]);
-    var stiffOn = stiffScore != null && stiffScore > 0;
     return {
       date: currentId,
       painScore: parseInt(el["pain-range"].value, 10) || 0,
@@ -955,8 +1106,6 @@
       delayedTriggerOtherText: dTrig.indexOf("other") > -1 ? el["delayed-trigger-other"].value.trim() : "",
       delayedDaysAgo: dDays ? parseInt(dDays, 10) : null,
       stiffnessScore: stiffScore,
-      stiffnessTiming: stiffOn ? getSeg(el["stiff-timing"]) : null,
-      stiffnessEased: stiffOn ? getSeg(el["stiff-eased"]) : null,
       activityImpact: impact,
       activityImpactNote: (impact === "modified" || impact === "skipped") ? el["impact-note"].value.trim() : "",
       rehabSessionDone: el["rehab-toggle"].checked,
@@ -982,8 +1131,18 @@
   bindChips(el["delayed-triggers"], el["delayed-other-wrap"], el["delayed-trigger-other"]);
   el["stiff-range"].addEventListener("input", function(){ setStiffness(parseInt(this.value,10)); });
   el["stiff-none"].addEventListener("click", function(){ setStiffness(0); });
-  bindSingleSelect(el["stiff-timing"]);
-  bindSingleSelect(el["stiff-eased"]);
+  el["ci-open"].addEventListener("click", openCheckin);
+  el["ci-cancel"].addEventListener("click", closeCheckin);
+  el["ci-save"].addEventListener("click", saveCheckin);
+  el["ci-sheet"].addEventListener("click", function(e){ if(e.target === el["ci-sheet"]) closeCheckin(); });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape" && !el["ci-sheet"].hidden) closeCheckin(); });
+  el["ci-pain"].addEventListener("input", function(){ el["ci-pain-num"].textContent = this.value; });
+  el["ci-stiff"].addEventListener("input", function(){ el["ci-stiff-num"].textContent = this.value; });
+  el["ci-context"].addEventListener("click", function(e){
+    var b = e.target.closest(".chip"); if(!b) return;
+    var already = b.getAttribute("aria-pressed") === "true";
+    setChipsBy(el["ci-context"], "ctx", already ? null : b.dataset.ctx);
+  });
   bindSingleSelect(el["delayed-days"]);
   bindSingleSelect(el["activity-impact"], updateImpactNote);
   el["pain-timing"].addEventListener("click", function(e){
@@ -1073,19 +1232,30 @@
     el["date-today"].style.display = (dateId === todayId()) ? "none" : "inline-block";
     el["date-next"].disabled = dateId >= todayId();
     stopTodayPoll();
+    dayCheckins = [];
     renderForm(defaultDoc(dateId), false);
+    renderCheckins();
     Promise.all([
       sb.from("backtrack_entries").select("*").eq("date", dateId).maybeSingle(),
-      sb.from("backtrack_activities").select("*").eq("entry_date", dateId).order("created_at")
+      sb.from("backtrack_activities").select("*").eq("entry_date", dateId).order("created_at"),
+      sb.from("backtrack_checkins").select("*").eq("entry_date", dateId).order("taken_at")
     ]).then(function(results){
       if(currentId !== dateId) return; // navigated away before this resolved
-      var entryRes = results[0], actRes = results[1];
-      if(entryRes.error || actRes.error){ showOffline(true); return; }
+      var entryRes = results[0], actRes = results[1], ciRes = results[2];
+      if(entryRes.error || actRes.error || ciRes.error){ showOffline(true); return; }
       showOffline(false);
       var activities = (actRes.data || []).map(activityRowToObj);
       var doc = entryRes.data ? rowToDoc(entryRes.data, activities) : defaultDoc(dateId);
       doc.activities = activities;
-      renderForm(doc, !!entryRes.data || activities.length > 0);
+      dayCheckins = ciRes.data || [];
+      renderForm(doc, !!entryRes.data || activities.length > 0 || dayCheckins.length > 0);
+      renderCheckins();
+      // a saved "worst today" can be raised by a later check-in, never lowered
+      var pk = checkinPeak(dayCheckins);
+      if(pk){
+        if(pk.pain > (doc.painScore || 0)){ el["pain-range"].value = pk.pain; updatePainDial(pk.pain); }
+        if(doc.stiffnessScore == null || pk.stiff > doc.stiffnessScore) setStiffness(pk.stiff);
+      }
       if(dateId === todayId()) startTodayPoll();
     }).catch(function(){ showOffline(true); });
   }
@@ -1321,6 +1491,7 @@
           if(entry.stretchDone) bits.push("stretched");
           if(entry.delayedOnset) bits.push("delayed onset");
           if(entry.activityCount) bits.push(entry.activityCount + " activity");
+          if(entry.checkinCount) bits.push(entry.checkinCount + " check-in" + (entry.checkinCount === 1 ? "" : "s"));
         } else {
           bits.push("nothing logged");
         }
@@ -1496,18 +1667,42 @@
   function refreshAllEntries(){
     return Promise.all([
       sb.from("backtrack_entries").select("*").order("date", {ascending:false}).limit(1000),
-      sb.from("backtrack_activities").select("entry_date")
+      sb.from("backtrack_activities").select("entry_date"),
+      sb.from("backtrack_checkins").select("entry_date,pain_score,stiffness_score")
     ]).then(function(results){
-      var entriesRes = results[0], actRes = results[1];
-      if(entriesRes.error || actRes.error){ showOffline(true); return; }
+      var entriesRes = results[0], actRes = results[1], ciRes = results[2];
+      if(entriesRes.error || actRes.error || ciRes.error){ showOffline(true); return; }
       showOffline(false);
       var counts = {};
       (actRes.data || []).forEach(function(r){ counts[r.entry_date] = (counts[r.entry_date]||0) + 1; });
-      allEntries = (entriesRes.data || []).map(function(row){
-        var doc = rowToDoc(row, []);
-        doc.activityCount = counts[row.date] || 0;
-        return doc;
+      // Each day's pain/stiffness = the worst of the nightly value and its
+      // check-ins. Days with check-ins but no saved entry still count.
+      var peaks = {};
+      (ciRes.data || []).forEach(function(c){
+        var pk = peaks[c.entry_date] || (peaks[c.entry_date] = {pain:0, stiff:0, n:0});
+        pk.pain = Math.max(pk.pain, c.pain_score);
+        pk.stiff = Math.max(pk.stiff, c.stiffness_score);
+        pk.n++;
       });
+      function withPeak(doc){
+        var pk = peaks[doc.date];
+        doc.activityCount = counts[doc.date] || 0;
+        doc.checkinCount = pk ? pk.n : 0;
+        if(pk){
+          doc.painScore = Math.max(doc.painScore || 0, pk.pain);
+          doc.stiffnessScore = doc.stiffnessScore == null ? pk.stiff : Math.max(doc.stiffnessScore, pk.stiff);
+        }
+        return doc;
+      }
+      var seen = {};
+      allEntries = (entriesRes.data || []).map(function(row){
+        seen[row.date] = true;
+        return withPeak(rowToDoc(row, []));
+      });
+      Object.keys(peaks).forEach(function(d){
+        if(!seen[d]){ var doc = defaultDoc(d); doc.checkinOnly = true; allEntries.push(withPeak(doc)); }
+      });
+      allEntries.sort(function(a,b){ return a.date < b.date ? 1 : -1; });
       renderTrends();
     }).catch(function(){ showOffline(true); });
   }

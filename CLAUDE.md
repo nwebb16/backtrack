@@ -57,9 +57,11 @@ Columns the app reads and writes: `date`, `pain_score` (0–10),
 (`yes` | `no` | `unsure` | null), `notes`, `updated_at`.
 
 Added Oct 2026 (all nullable, so older days read as "not recorded"):
-- `stiffness_score` (0–10, **null = not recorded**, never coerce to 0),
-  `stiffness_timing` (`morning` | `after-sitting` | `after-exercise` |
-  `all-day`), `stiffness_eased` (`under-30` | `30-60` | `over-60` | `didnt`).
+- `stiffness_score` (0–10, **null = not recorded**, never coerce to 0).
+  Together with `pain_score`, this is the day's **"worst today"**. Since check-ins
+  were added, it's pre-filled from the day's highest check-in.
+- `stiffness_timing`, `stiffness_eased`: **unused**. They lived for one day
+  before check-ins replaced them, and hold no data.
 - `activity_impact` (`none` | `modified` | `skipped`), `activity_impact_note`.
 - `delayed_triggers` (array of trigger keys, default `{}`),
   `delayed_trigger_other_text`, `delayed_days_ago` (1, 2, or 3 = "3+").
@@ -97,6 +99,25 @@ Columns used: `id`, `entry_date`, `source` (`strava` | `manual`), `type`,
   don't wait for Save entry.
 - An activity on its own doesn't create a `backtrack_entries` row, so the
   calendar and trends only count days where Save entry was tapped.
+
+### `backtrack_checkins`: many per day (added 3 Oct 2026)
+
+`id`, `entry_date`, `taken_at` (timestamptz, written as `<date>T<hh:mm>:00+10:00`;
+Brisbane has no daylight saving), `pain_score` (0–10), `stiffness_score` (0–10),
+`context` (`sleep` | `ride` | `run` | `swim` | `gym` | `sitting` | `yard-work` |
+`other` | null), `note`.
+
+- Saved **immediately** from the check-in sheet, like activities.
+- It's a separate table on purpose: a 5am check-in must not create a
+  `backtrack_entries` row (pain_score defaults to 0).
+- Why it exists: logging at 8pm misses how pain rises and settles across the day.
+  The day's peak is the number used for triggers. Averages are deliberately
+  not used, because they depend on how often Nat checks in.
+- `refreshAllEntries` folds each day's check-in peak into that day
+  (`max(nightly, peak)`) and adds days that have check-ins but no saved entry
+  (`checkinOnly`). Calendar, trends and report all read that merged list.
+- On load, a saved "worst today" can be raised by a later check-in, never
+  lowered.
 
 ### Strava sync (outside this repo)
 
@@ -149,18 +170,24 @@ No automated tests. Check changes by serving the folder locally and loading
 Home-screen apps can cache the old version: close and reopen the app to pick
 up a new deploy.
 
-## Open items (as of 3 Oct 2026)
+## Open items (as of 3 Oct 2026, evening)
 
-- **Waiting on Nat:** make "Stiffest when" multi-select (pills) and add
-  "During exercise". This needs `stiffness_timing` changed from text to text[]
-  (no data in it yet when proposed).
 - **Waiting on Nat:** tidy older same-day Other texts. "Laptop & lounge" and
   "Laptop on the Lounge building App" become the `lounge-laptop` pill; merge
   the two "Sitting in grandstand at swimming" wordings.
-- **Round 2:** stiffness reporting. Stiffness line on the chart; tiles for avg
-  stiffness, stiff-but-pain-free days and days limited; trigger tally against
-  stiff days; an automatic Strava look-back at the 1–2 days before bad days.
-- **Round 3:** Apple Health sleep. Nat believes Garmin Connect already feeds
-  Apple Health. Next: check Health → Browse → Sleep for stages vs total only.
+- **Round 2 (reporting):**
+  - Day peak, end of day (last check-in) and next morning (first check-in
+    the following day) per day.
+  - Per-activity averages from check-in `context` ("Running avg pain 7 over 6
+    check-ins").
+  - Recovery: peak → end of day.
+  - Automatic Strava look-back at the 1–2 days before bad mornings.
+  - Stiffness line on the chart, plus tiles for avg stiffness, stiff-but-pain-free
+    days and days limited.
+  - Label pre-check-in days (before 3 Oct 2026) as "nightly only".
+- **Round 3:** Apple Health sleep. Nat says Garmin Connect already feeds Apple
+  Health. Next: check Health → Browse → Sleep for stages vs total only.
   Before this round, decide whether to add a lock (no login today).
+- **Maybe:** a faster check-in via an iPhone Shortcut (Action button / Back
+  Tap) or a `?checkin` URL that opens the sheet directly.
 - Check: no Strava activity synced for Fri 2 Oct. Confirm whether Nat did one.
