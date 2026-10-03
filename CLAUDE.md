@@ -148,3 +148,19 @@ No automated tests. Check changes by serving the folder locally and loading
 `index.html` at phone width (375px), then on the iPhone after deploy.
 Home-screen apps can cache the old version: close and reopen the app to pick
 up a new deploy.
+
+## Open items (as of 3 Oct 2026)
+
+- **Waiting on Nat:** make "Stiffest when" multi-select (pills) and add
+  "During exercise". This needs `stiffness_timing` changed from text to text[]
+  (no data in it yet when proposed).
+- **Waiting on Nat:** tidy older same-day Other texts. "Laptop & lounge" and
+  "Laptop on the Lounge building App" become the `lounge-laptop` pill; merge
+  the two "Sitting in grandstand at swimming" wordings.
+- **Round 2:** stiffness reporting. Stiffness line on the chart; tiles for avg
+  stiffness, stiff-but-pain-free days and days limited; trigger tally against
+  stiff days; an automatic Strava look-back at the 1–2 days before bad days.
+- **Round 3:** Apple Health sleep. Nat believes Garmin Connect already feeds
+  Apple Health. Next: check Health → Browse → Sleep for stages vs total only.
+  Before this round, decide whether to add a lock (no login today).
+- Check: no Strava activity synced for Fri 2 Oct. Confirm whether Nat did one.
