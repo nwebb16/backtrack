@@ -187,8 +187,11 @@ up a new deploy.
     under ~250 steps, number of movement breaks, longest still stretch). These
     would replace the manual hours-in-chair guess and the breaks switch.
     Keep the manual fields until the automatic data has proved reliable.
-  - Still to check: whether Garmin's step samples are fine-grained enough for
-    an hourly breakdown.
+  - Garmin step samples arrive about every 15 min, which is fine for hourly
+    figures. The iPhone also writes its own step samples to Health, so the
+    Shortcut must read **Garmin Connect samples only**. Raw samples aren't
+    de-duplicated across sources, and the phone sits still on a desk while
+    Nat walks.
   - Garmin → Health can stall silently. Flag "no sleep data for last night";
     don't show blanks.
   - Before this round, decide whether to add a lock (no login today).
