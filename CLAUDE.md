@@ -46,78 +46,72 @@ Pages.
 
 ## Data model
 
-### `backtrack_entries`: one row per day, PK `date`
+**The split (agreed 3 Oct 2026):** anything that changes through the day is a
+**check-in**. Whole-day facts go in the **nightly entry**. Don't add
+in-the-moment things (triggers, timing, meds) back onto the day row.
 
-Columns the app reads and writes: `date`, `pain_score` (0–10),
-`pain_triggers` (array of trigger keys, see below), `pain_trigger_other_text`,
-`pain_timing` (`morning` | `evening` | `consistent` | `variable` | null),
-`delayed_onset`, `delayed_onset_note`, `rehab_session_done`, `rehab_notes`,
-`stretch_done`, `office_hours`, `sitting_breaks`, `sleep_hours`,
-`medication_taken`, `medication_name`, `medication_dose`, `medication_helped`
-(`yes` | `no` | `unsure` | null), `notes`, `updated_at`.
+### `backtrack_checkins`: many per day
 
-Added Oct 2026 (all nullable, so older days read as "not recorded"):
-- `stiffness_score` (0–10, **null = not recorded**, never coerce to 0).
-  Together with `pain_score`, this is the day's **"worst today"**. Since check-ins
-  were added, it's pre-filled from the day's highest check-in.
-- `stiffness_timing`, `stiffness_eased`: **unused**. They lived for one day
-  before check-ins replaced them, and hold no data.
-- `activity_impact` (`none` | `modified` | `skipped`), `activity_impact_note`.
-- `delayed_triggers` (array of trigger keys, default `{}`),
-  `delayed_trigger_other_text`, `delayed_days_ago` (1, 2, or 3 = "3+").
-  The report counts these against the day the pain was *felt*, alongside
-  same-day triggers, and shows "n delayed".
+`id`, `entry_date`, `taken_at` (timestamptz, written as `<date>T<hh:mm>:00+10:00`;
+Brisbane has no daylight saving), `pain_score` 0–10, `stiffness_score` 0–10,
+`context` ("what are you doing", one trigger key or null), `note`,
+`cause_triggers` text[] + `cause_other_text` + `cause_when`
+(`earlier-today` | `yesterday` | `2-plus-days`) for "Think it's from something
+earlier?", `med_taken` / `med_name` / `med_dose`, and
+`kind` (`checkin` | `bedtime`; a unique index allows one bedtime per day).
 
-Trigger keys (shared by `pain_triggers` and `delayed_triggers`): `run`, `swim`,
-`ride`, `yard-work`, `office-chair`, `lounge-laptop`, `other` (+ free text).
-`office-chair` is deliberately work sitting only. Nat is testing whether
-long workdays are a trigger, so don't merge it into a general "sitting".
+- Saved **immediately** from the sheet (insert or, when a row is tapped, update).
+- The nightly **"How is it now?"** sliders are the `bedtime` check-in, saved
+  when Nat taps Save entry (`saveBedtime`, then the entry upsert).
+- **A day's pain/stiffness = the peak of its check-ins.** The peak drives
+  triggers; averages are deliberately not used, because they depend on how
+  often Nat checks in. Save entry also writes the peak to `backtrack_entries`.
+- It's a separate table on purpose: a 5am check-in must not create a
+  `backtrack_entries` row (pain_score defaults to 0).
 
-Text enums have no DB check constraints on purpose, so options can be
-tweaked after a few days of use without a migration.
+### `backtrack_entries`: one row per day, PK `date` (whole-day facts)
 
-Unused columns: `sleep_asleep_min`, `sleep_deep_min`, `sleep_rem_min`,
-`sleep_core_min`, `sleep_in_bed_min`, `sleep_start`, `sleep_end`,
-`sleep_source`. They were left over from an abandoned Garmin sleep idea and
-are all empty. The planned Apple Health sleep import (iPhone Shortcut →
-Supabase) should write to its **own `backtrack_sleep` table**, not here.
-An upsert into `backtrack_entries` before Nat logs the day would create
-a row with `pain_score` defaulting to 0, which looks like a logged pain-free
-day.
+**Written now:** `date`, `activity_impact` (`none` | `modified` | `skipped`),
+`activity_impact_note`, `rehab_session_done`, `rehab_notes`, `stretch_done`,
+`office_hours`, `sitting_breaks`, `sleep_hours`, `notes`, `updated_at`, plus
+`pain_score` / `stiffness_score` = the check-in peak when there are check-ins.
+Saved with `upsert(..., {onConflict: "date"})`. Only the columns in
+`docToEntryRow` are sent, so the others are never touched.
 
-Saved with `upsert(..., {onConflict: "date"})` when Nat taps **Save entry**.
-The upsert only sends the columns in `docToEntryRow`, so columns it doesn't
-list are left untouched.
+**Legacy, read-only** (from before 3 Oct 2026; the report still counts them):
+`pain_triggers`, `pain_trigger_other_text`, `pain_timing`, `delayed_onset`,
+`delayed_onset_note`, `delayed_triggers`, `delayed_trigger_other_text`,
+`delayed_days_ago`, `medication_*`. Never write these, or re-saving an old day
+would wipe its history.
+
+**Unused:** `stiffness_timing`, `stiffness_eased` (existed for one day),
+and `sleep_asleep_min`, `sleep_deep_min`, `sleep_rem_min`, `sleep_core_min`,
+`sleep_in_bed_min`, `sleep_start`, `sleep_end`, `sleep_source` (an abandoned
+Garmin idea). The planned Apple Health sleep import should get its **own
+`backtrack_sleep` table**.
+
+**Scores by date** (`refreshAllEntries`, constant `CHECKIN_START = 2026-10-03`):
+- Days with check-ins use the check-in peak.
+- Days before `CHECKIN_START` use their single nightly `pain_score`.
+- Later days with no check-ins are "logged, not rated" (null; no calendar colour).
+- Check-in-only days (no saved entry) still count.
+
+### Trigger keys
+
+Shared by check-in `context`, `cause_triggers` and the legacy columns: `sleep`,
+`ride`, `run`, `swim`, `gym`, `office-chair` ("Sitting at work"),
+`lounge-laptop`, `yard-work`, `other` (+ free text). `office-chair` is
+deliberately work sitting only. Nat is testing whether long workdays are a
+trigger. The report tally skips `sleep` as a *context*, but counts it as a
+*cause*. Text enums have no DB check constraints, so options can be tweaked
+without a migration.
 
 ### `backtrack_activities`: one row per activity
 
 Columns used: `id`, `entry_date`, `source` (`strava` | `manual`), `type`,
 `name`, `duration_min`, `distance_km`, `notes`, `created_at`.
-`strava_activity_id` is the unique dedupe key for Strava rows.
-
-- Activities are written **immediately** (insert on Add, delete on ×). They
-  don't wait for Save entry.
-- An activity on its own doesn't create a `backtrack_entries` row, so the
-  calendar and trends only count days where Save entry was tapped.
-
-### `backtrack_checkins`: many per day (added 3 Oct 2026)
-
-`id`, `entry_date`, `taken_at` (timestamptz, written as `<date>T<hh:mm>:00+10:00`;
-Brisbane has no daylight saving), `pain_score` (0–10), `stiffness_score` (0–10),
-`context` (`sleep` | `ride` | `run` | `swim` | `gym` | `sitting` | `yard-work` |
-`other` | null), `note`.
-
-- Saved **immediately** from the check-in sheet, like activities.
-- It's a separate table on purpose: a 5am check-in must not create a
-  `backtrack_entries` row (pain_score defaults to 0).
-- Why it exists: logging at 8pm misses how pain rises and settles across the day.
-  The day's peak is the number used for triggers. Averages are deliberately
-  not used, because they depend on how often Nat checks in.
-- `refreshAllEntries` folds each day's check-in peak into that day
-  (`max(nightly, peak)`) and adds days that have check-ins but no saved entry
-  (`checkinOnly`). Calendar, trends and report all read that merged list.
-- On load, a saved "worst today" can be raised by a later check-in, never
-  lowered.
+`strava_activity_id` is the unique dedupe key for Strava rows. Rows are written
+immediately (insert on Add, delete on ×).
 
 ### Strava sync (outside this repo)
 
@@ -133,11 +127,14 @@ While today's entry is open, the app polls every 45s and merges in any new
 ## Code map (`index.html`)
 
 - `rowToDoc` / `docToEntryRow` / `activityRowToObj`: the only place DB
-  snake_case is mapped to the app's camelCase "doc". Add new fields here and
-  in `defaultDoc`, `renderForm`, `collectDoc`.
-- `loadEntry` (one day + its activities), `startTodayPoll`,
-  `refreshAllEntries` (all entries + activity counts; drives Trends, calendar
-  and Report).
+  snake_case is mapped to the app's camelCase "doc". Add new day fields here
+  and in `defaultDoc`, `renderForm`, `collectDoc`.
+- Check-ins: `openCheckin(c)` (null = new), `saveCheckin`, `renderCheckins`,
+  `renderWorst`, `makeCause(host, prefix)` (the "from something earlier?"
+  block, used in the sheet and the bedtime card), `saveBedtime`.
+- `loadEntry` (one day + activities + check-ins), `startTodayPoll`,
+  `refreshAllEntries` (all entries + activity counts + check-in peaks; drives
+  Trends, calendar and Report).
 - `renderTrends` → `renderTiles`, `renderChart` (hand-built SVG),
   `renderHistory` (month calendar), `renderReport` (week/month/90d stats,
   trigger tally against high-pain days ≥ `HIGH_PAIN_THRESHOLD` = 6).
@@ -170,24 +167,23 @@ No automated tests. Check changes by serving the folder locally and loading
 Home-screen apps can cache the old version: close and reopen the app to pick
 up a new deploy.
 
-## Open items (as of 3 Oct 2026, evening)
+## Open items (as of 3 Oct 2026, night)
 
-- **Waiting on Nat:** tidy older same-day Other texts. "Laptop & lounge" and
-  "Laptop on the Lounge building App" become the `lounge-laptop` pill; merge
-  the two "Sitting in grandstand at swimming" wordings.
 - **Round 2 (reporting):**
-  - Day peak, end of day (last check-in) and next morning (first check-in
-    the following day) per day.
+  - Per day: peak, end of day (bedtime) and next morning (first check-in the
+    following day).
   - Per-activity averages from check-in `context` ("Running avg pain 7 over 6
     check-ins").
-  - Recovery: peak → end of day.
+  - Recovery: peak → bedtime. Medication effect: pain at the next check-in
+    after `med_taken`.
   - Automatic Strava look-back at the 1–2 days before bad mornings.
-  - Stiffness line on the chart, plus tiles for avg stiffness, stiff-but-pain-free
-    days and days limited.
-  - Label pre-check-in days (before 3 Oct 2026) as "nightly only".
+  - Stiffness line on the chart, plus tiles for avg stiffness,
+    stiff-but-pain-free days and days limited.
 - **Round 3:** Apple Health sleep. Nat says Garmin Connect already feeds Apple
   Health. Next: check Health → Browse → Sleep for stages vs total only.
   Before this round, decide whether to add a lock (no login today).
 - **Maybe:** a faster check-in via an iPhone Shortcut (Action button / Back
   Tap) or a `?checkin` URL that opens the sheet directly.
+- **Parked:** tidying the legacy Other texts ("Laptop & lounge" etc.). Less
+  important now that triggers live in check-ins.
 - Check: no Strava activity synced for Fri 2 Oct. Confirm whether Nat did one.
