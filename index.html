@@ -166,7 +166,13 @@
   textarea{resize:vertical; min-height:56px;}
   input[type="number"]{font-family:"IBM Plex Mono",monospace;}
   .collapse{max-height:0; overflow:hidden; transition:max-height .2s ease; }
-  .collapse.open{max-height:400px;}
+  .collapse.open{max-height:640px;}
+  .divider{height:1px; background:var(--line); margin:18px 0 16px;}
+  .sublbl{font-size:0.72rem; color:var(--ink-2); text-transform:uppercase; letter-spacing:0.05em;}
+  .linkbtn{border:none; background:none; padding:2px 0 0; color:var(--accent-strong); font-family:"Public Sans"; font-size:0.76rem; text-decoration:underline; cursor:pointer; text-align:left; width:fit-content;}
+  /* equal-width options that always fit one row; long labels wrap inside their button */
+  .seg{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; width:100%; max-width:440px;}
+  .seg button{padding:8px 6px; line-height:1.2;}
   .stack{display:flex; flex-direction:column; gap:10px; margin-top:12px;}
 
   .activities{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
@@ -312,14 +318,46 @@
     <div class="entry">
 
       <div class="card">
+        <h2>How's the back today?</h2>
+        <div class="hint">Pain and stiffness are logged separately — a day can be stiff without hurting.</div>
         <div class="pain-head">
           <div class="pain-dial" id="pain-dial"><span class="num mono" id="pain-num">0</span></div>
           <div class="pain-meta">
             <span class="pain-word" id="pain-word">No pain</span>
-            <span class="pain-scale-lbl">Today's back pain, 0 (none) – 10 (worst)</span>
+            <span class="pain-scale-lbl">Pain, 0 (none) – 10 (worst)</span>
           </div>
         </div>
         <input type="range" id="pain-range" min="0" max="10" step="1" value="0">
+
+        <div class="divider"></div>
+
+        <div class="pain-head">
+          <div class="pain-dial" id="stiff-dial"><span class="num mono" id="stiff-num">–</span></div>
+          <div class="pain-meta">
+            <span class="pain-word" id="stiff-word">Not recorded</span>
+            <span class="pain-scale-lbl">Stiffness, 0 (none) – 10 (barely moving)</span>
+            <button type="button" class="linkbtn" id="stiff-none">No stiffness today</button>
+          </div>
+        </div>
+        <input type="range" id="stiff-range" min="0" max="10" step="1" value="0">
+        <div class="collapse" id="stiff-details-wrap">
+          <div class="stack">
+            <span class="sublbl">Stiffest when</span>
+            <div class="seg" id="stiff-timing" role="group" aria-label="Stiffness timing">
+              <button data-val="morning" aria-pressed="false">Morning</button>
+              <button data-val="after-sitting" aria-pressed="false">After sitting</button>
+              <button data-val="after-exercise" aria-pressed="false">After exercise</button>
+              <button data-val="all-day" aria-pressed="false">All day</button>
+            </div>
+            <span class="sublbl">Loosened up after</span>
+            <div class="seg" id="stiff-eased" role="group" aria-label="Time for stiffness to ease">
+              <button data-val="under-30" aria-pressed="false">&lt;30 min</button>
+              <button data-val="30-60" aria-pressed="false">30–60 min</button>
+              <button data-val="over-60" aria-pressed="false">1 hr+</button>
+              <button data-val="didnt" aria-pressed="false">Didn't</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -331,6 +369,7 @@
           <button class="chip" data-trigger="ride" aria-pressed="false">Ride</button>
           <button class="chip" data-trigger="yard-work" aria-pressed="false">Yard work</button>
           <button class="chip" data-trigger="office-chair" aria-pressed="false">Sitting in office chair</button>
+          <button class="chip" data-trigger="lounge-laptop" aria-pressed="false">Laptop on lounge</button>
           <button class="chip" data-trigger="other" aria-pressed="false">Other</button>
         </div>
         <div class="collapse" id="other-trigger-wrap">
@@ -351,7 +390,26 @@
         </div>
         <div class="collapse" id="delayed-notes-wrap">
           <div class="stack">
-            <input type="text" id="delayed-notes" class="pill-input" placeholder="e.g. Saturday's long ride, 2 days ago…" style="margin-top:8px;">
+            <span class="sublbl">What caused it?</span>
+            <div class="chips" id="delayed-triggers" role="group" aria-label="Delayed triggers">
+              <button class="chip" data-trigger="run" aria-pressed="false">Run</button>
+              <button class="chip" data-trigger="swim" aria-pressed="false">Swim</button>
+              <button class="chip" data-trigger="ride" aria-pressed="false">Ride</button>
+              <button class="chip" data-trigger="yard-work" aria-pressed="false">Yard work</button>
+              <button class="chip" data-trigger="office-chair" aria-pressed="false">Sitting in office chair</button>
+              <button class="chip" data-trigger="lounge-laptop" aria-pressed="false">Laptop on lounge</button>
+              <button class="chip" data-trigger="other" aria-pressed="false">Other</button>
+            </div>
+            <div class="collapse" id="delayed-other-wrap">
+              <input type="text" id="delayed-trigger-other" class="pill-input" placeholder="Describe the trigger…">
+            </div>
+            <span class="sublbl">How long ago?</span>
+            <div class="seg" id="delayed-days" role="group" aria-label="Days since trigger">
+              <button data-val="1" aria-pressed="false">1 day</button>
+              <button data-val="2" aria-pressed="false">2 days</button>
+              <button data-val="3" aria-pressed="false">3+ days</button>
+            </div>
+            <input type="text" id="delayed-notes" class="pill-input" placeholder="Notes (optional)…">
           </div>
         </div>
       </div>
@@ -379,6 +437,17 @@
           </div>
         </div>
         <button class="btn ghost" id="act-add-toggle" type="button" style="margin-top:8px;">+ Add exercise or activity</button>
+        <div class="stack" style="margin-top:16px;">
+          <span class="sublbl">Did your back limit what you did today?</span>
+          <div class="seg" id="activity-impact" role="group" aria-label="Activity limited by back">
+            <button data-val="none" aria-pressed="false">Not at all</button>
+            <button data-val="modified" aria-pressed="false">Modified it</button>
+            <button data-val="skipped" aria-pressed="false">Skipped something</button>
+          </div>
+          <div class="collapse" id="impact-note-wrap">
+            <input type="text" id="impact-note" class="pill-input" placeholder="e.g. cut the run short at 5km…">
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -545,7 +614,8 @@
   var todayPollTimer = null;
   var TRIGGER_LABELS = {
     "run":"Run", "swim":"Swim", "ride":"Ride",
-    "yard-work":"Yard work", "office-chair":"Sitting in office chair"
+    "yard-work":"Yard work", "office-chair":"Sitting in office chair",
+    "lounge-laptop":"Laptop on lounge"
   };
   var HIGH_PAIN_THRESHOLD = 6;
 
@@ -559,6 +629,11 @@
   }
   function fmtTime(){
     return new Intl.DateTimeFormat("en-AU", {timeZone: TZ, hour:"numeric", minute:"2-digit"}).format(new Date());
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
   }
   function painBand(score){
     if(score >= 7) return "critical";
@@ -585,6 +660,14 @@
       painTiming: row.pain_timing || null,
       delayedOnset: !!row.delayed_onset,
       delayedOnsetNote: row.delayed_onset_note || "",
+      delayedTriggers: row.delayed_triggers || [],
+      delayedTriggerOtherText: row.delayed_trigger_other_text || "",
+      delayedDaysAgo: row.delayed_days_ago != null ? row.delayed_days_ago : null,
+      stiffnessScore: row.stiffness_score != null ? row.stiffness_score : null,
+      stiffnessTiming: row.stiffness_timing || null,
+      stiffnessEased: row.stiffness_eased || null,
+      activityImpact: row.activity_impact || null,
+      activityImpactNote: row.activity_impact_note || "",
       rehabSessionDone: !!row.rehab_session_done,
       rehabNotes: row.rehab_notes || "",
       stretchDone: !!row.stretch_done,
@@ -610,6 +693,14 @@
       pain_timing: doc.painTiming,
       delayed_onset: doc.delayedOnset,
       delayed_onset_note: doc.delayedOnsetNote,
+      delayed_triggers: doc.delayedTriggers,
+      delayed_trigger_other_text: doc.delayedTriggerOtherText,
+      delayed_days_ago: doc.delayedDaysAgo,
+      stiffness_score: doc.stiffnessScore,
+      stiffness_timing: doc.stiffnessTiming,
+      stiffness_eased: doc.stiffnessEased,
+      activity_impact: doc.activityImpact,
+      activity_impact_note: doc.activityImpactNote,
       rehab_session_done: doc.rehabSessionDone,
       rehab_notes: doc.rehabNotes,
       stretch_done: doc.stretchDone,
@@ -639,6 +730,9 @@
   var el = {};
   ["entry-date","offline-banner","pain-dial","pain-num","pain-word","pain-range",
    "pain-triggers","other-trigger-wrap","pain-trigger-other","pain-timing","delayed-toggle","delayed-notes-wrap","delayed-notes","activities-list","add-activity-form","act-add-toggle",
+   "stiff-dial","stiff-num","stiff-word","stiff-range","stiff-none","stiff-details-wrap","stiff-timing","stiff-eased",
+   "delayed-triggers","delayed-other-wrap","delayed-trigger-other","delayed-days",
+   "activity-impact","impact-note-wrap","impact-note",
    "act-type","act-duration","act-notes","act-save","act-cancel",
    "rehab-toggle","rehab-notes-wrap","rehab-notes","stretch-toggle",
    "office-hours","sleep-hours","breaks-toggle",
@@ -654,6 +748,9 @@
     return {
       date: dateId, painScore:0, painTriggers:[], painTriggerOtherText:"", painTiming:null,
       delayedOnset:false, delayedOnsetNote:"",
+      delayedTriggers:[], delayedTriggerOtherText:"", delayedDaysAgo:null,
+      stiffnessScore:null, stiffnessTiming:null, stiffnessEased:null,
+      activityImpact:null, activityImpactNote:"",
       rehabSessionDone:false, rehabNotes:"", stretchDone:false,
       activities:[], officeHours:null, sittingBreaks:false, sleepHours:null,
       medication:{taken:false,name:"",dose:"",helped:null}, notes:""
@@ -678,6 +775,17 @@
     el["delayed-toggle"].checked = !!doc.delayedOnset;
     el["delayed-notes-wrap"].classList.toggle("open", !!doc.delayedOnset);
     el["delayed-notes"].value = doc.delayedOnsetNote || "";
+    var dTrig = doc.delayedTriggers || [];
+    setChips(el["delayed-triggers"], dTrig);
+    el["delayed-other-wrap"].classList.toggle("open", dTrig.indexOf("other") > -1);
+    el["delayed-trigger-other"].value = doc.delayedTriggerOtherText || "";
+    setSeg(el["delayed-days"], doc.delayedDaysAgo);
+    setStiffness(doc.stiffnessScore);
+    setSeg(el["stiff-timing"], doc.stiffnessTiming);
+    setSeg(el["stiff-eased"], doc.stiffnessEased);
+    setSeg(el["activity-impact"], doc.activityImpact);
+    el["impact-note"].value = doc.activityImpactNote || "";
+    updateImpactNote();
     el["rehab-toggle"].checked = !!doc.rehabSessionDone;
     el["rehab-notes"].value = doc.rehabNotes || "";
     el["rehab-notes-wrap"].classList.toggle("open", !!doc.rehabSessionDone);
@@ -705,6 +813,78 @@
     var color = band === "critical" ? "var(--critical)" : band === "warn" ? "var(--warn)" : "var(--good)";
     el["pain-dial"].style.borderColor = color;
     el["pain-word"].style.color = color;
+  }
+
+  // Stiffness starts as null ("not recorded") rather than 0, so days logged
+  // before stiffness existed — or days you skip it — don't count as 0.
+  var stiffScore = null;
+  function stiffWord(score){
+    if(score === 0) return "No stiffness";
+    if(score <= 3) return "Mild";
+    if(score <= 6) return "Moderate";
+    return "Severe";
+  }
+  function setStiffness(score){
+    stiffScore = score;
+    var recorded = score != null;
+    el["stiff-range"].value = recorded ? score : 0;
+    el["stiff-num"].textContent = recorded ? score : "–";
+    el["stiff-word"].textContent = recorded ? stiffWord(score) : "Not recorded";
+    var color = !recorded ? "var(--line)" : bandColor(painBand(score));
+    el["stiff-dial"].style.borderColor = color;
+    el["stiff-word"].style.color = recorded ? color : "var(--muted)";
+    el["stiff-none"].style.display = recorded ? "none" : "block";
+    el["stiff-details-wrap"].classList.toggle("open", recorded && score > 0);
+  }
+  function bandColor(band){
+    return band === "critical" ? "var(--critical)" : band === "warn" ? "var(--warn)" : "var(--good)";
+  }
+
+  // ---------- small widget helpers ----------
+  function setSeg(container, val){
+    container.querySelectorAll("button").forEach(function(b){
+      b.setAttribute("aria-pressed", (val != null && b.dataset.val === String(val)) ? "true" : "false");
+    });
+  }
+  function getSeg(container){
+    var b = container.querySelector('button[aria-pressed="true"]');
+    return b ? b.dataset.val : null;
+  }
+  function setChips(container, list){
+    container.querySelectorAll(".chip").forEach(function(b){
+      b.setAttribute("aria-pressed", list.indexOf(b.dataset.trigger) > -1 ? "true" : "false");
+    });
+  }
+  function getChips(container){
+    var out = [];
+    container.querySelectorAll('.chip[aria-pressed="true"]').forEach(function(b){ out.push(b.dataset.trigger); });
+    return out;
+  }
+  // tap to select, tap again to clear
+  function bindSingleSelect(container, onChange){
+    container.addEventListener("click", function(e){
+      var b = e.target.closest("button"); if(!b) return;
+      var already = b.getAttribute("aria-pressed") === "true";
+      container.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed","false"); });
+      b.setAttribute("aria-pressed", already ? "false" : "true");
+      if(onChange) onChange();
+    });
+  }
+  function bindChips(container, otherWrap, otherInput){
+    container.addEventListener("click", function(e){
+      var b = e.target.closest(".chip"); if(!b) return;
+      var nowOn = b.getAttribute("aria-pressed") !== "true";
+      b.setAttribute("aria-pressed", nowOn ? "true":"false");
+      if(b.dataset.trigger === "other"){
+        otherWrap.classList.toggle("open", nowOn);
+        if(nowOn) otherInput.focus();
+        else otherInput.value = "";
+      }
+    });
+  }
+  function updateImpactNote(){
+    var v = getSeg(el["activity-impact"]);
+    el["impact-note-wrap"].classList.toggle("open", v === "modified" || v === "skipped");
   }
 
   function renderActivities(){
@@ -758,6 +938,11 @@
     el["pain-triggers"].querySelectorAll('.chip[aria-pressed="true"]').forEach(function(b){trig.push(b.dataset.trigger);});
     var timingBtn = el["pain-timing"].querySelector('button[aria-pressed="true"]');
     var helpedBtn = el["med-helped"].querySelector('button[aria-pressed="true"]');
+    var delayedOn = el["delayed-toggle"].checked;
+    var dTrig = delayedOn ? getChips(el["delayed-triggers"]) : [];
+    var dDays = delayedOn ? getSeg(el["delayed-days"]) : null;
+    var impact = getSeg(el["activity-impact"]);
+    var stiffOn = stiffScore != null && stiffScore > 0;
     return {
       date: currentId,
       painScore: parseInt(el["pain-range"].value, 10) || 0,
@@ -766,6 +951,14 @@
       painTiming: timingBtn ? timingBtn.dataset.timing : null,
       delayedOnset: el["delayed-toggle"].checked,
       delayedOnsetNote: el["delayed-toggle"].checked ? el["delayed-notes"].value.trim() : "",
+      delayedTriggers: dTrig,
+      delayedTriggerOtherText: dTrig.indexOf("other") > -1 ? el["delayed-trigger-other"].value.trim() : "",
+      delayedDaysAgo: dDays ? parseInt(dDays, 10) : null,
+      stiffnessScore: stiffScore,
+      stiffnessTiming: stiffOn ? getSeg(el["stiff-timing"]) : null,
+      stiffnessEased: stiffOn ? getSeg(el["stiff-eased"]) : null,
+      activityImpact: impact,
+      activityImpactNote: (impact === "modified" || impact === "skipped") ? el["impact-note"].value.trim() : "",
       rehabSessionDone: el["rehab-toggle"].checked,
       rehabNotes: el["rehab-notes"].value.trim(),
       stretchDone: el["stretch-toggle"].checked,
@@ -785,16 +978,14 @@
 
   // ---------- interactions ----------
   el["pain-range"].addEventListener("input", function(){ updatePainDial(parseInt(this.value,10)); });
-  el["pain-triggers"].addEventListener("click", function(e){
-    var b = e.target.closest(".chip"); if(!b) return;
-    var nowOn = b.getAttribute("aria-pressed") !== "true";
-    b.setAttribute("aria-pressed", nowOn ? "true":"false");
-    if(b.dataset.trigger === "other"){
-      el["other-trigger-wrap"].classList.toggle("open", nowOn);
-      if(nowOn) el["pain-trigger-other"].focus();
-      else el["pain-trigger-other"].value = "";
-    }
-  });
+  bindChips(el["pain-triggers"], el["other-trigger-wrap"], el["pain-trigger-other"]);
+  bindChips(el["delayed-triggers"], el["delayed-other-wrap"], el["delayed-trigger-other"]);
+  el["stiff-range"].addEventListener("input", function(){ setStiffness(parseInt(this.value,10)); });
+  el["stiff-none"].addEventListener("click", function(){ setStiffness(0); });
+  bindSingleSelect(el["stiff-timing"]);
+  bindSingleSelect(el["stiff-eased"]);
+  bindSingleSelect(el["delayed-days"]);
+  bindSingleSelect(el["activity-impact"], updateImpactNote);
   el["pain-timing"].addEventListener("click", function(e){
     var b = e.target.closest("button"); if(!b) return;
     var already = b.getAttribute("aria-pressed") === "true";
@@ -809,8 +1000,13 @@
   });
   el["delayed-toggle"].addEventListener("change", function(){
     el["delayed-notes-wrap"].classList.toggle("open", this.checked);
-    if(this.checked) el["delayed-notes"].focus();
-    else el["delayed-notes"].value = "";
+    if(!this.checked){
+      el["delayed-notes"].value = "";
+      setChips(el["delayed-triggers"], []);
+      el["delayed-other-wrap"].classList.remove("open");
+      el["delayed-trigger-other"].value = "";
+      setSeg(el["delayed-days"], null);
+    }
   });
   el["rehab-toggle"].addEventListener("change", function(){
     el["rehab-notes-wrap"].classList.toggle("open", this.checked);
@@ -1178,18 +1374,30 @@
     var highPainEntries = entries.filter(function(e){ return (e.painScore||0) >= HIGH_PAIN_THRESHOLD; });
     var highPainDates = {};
     highPainEntries.forEach(function(e){ highPainDates[e.date] = true; });
+    function keyFor(t, otherText){
+      if(t === "other"){
+        var txt = (otherText||"").trim();
+        return {key: txt ? "other:"+txt.toLowerCase() : "other-unspecified", label: txt || "Other"};
+      }
+      return {key: t, label: TRIGGER_LABELS[t] || t};
+    }
+    // Same-day and delayed triggers both count against the day you felt it;
+    // a trigger tagged both ways on one day is only counted once.
     entries.forEach(function(e){
+      var seen = {};
       (e.painTriggers||[]).forEach(function(t){
-        var key, label;
-        if(t === "other"){
-          var txt = (e.painTriggerOtherText||"").trim();
-          key = txt ? "other:"+txt.toLowerCase() : "other-unspecified";
-          label = txt || "Other";
-        } else {
-          key = t; label = TRIGGER_LABELS[t] || t;
-        }
-        if(!map[key]) map[key] = {label:label, total:0, highPain:0};
+        var k = keyFor(t, e.painTriggerOtherText);
+        seen[k.key] = seen[k.key] || {label:k.label, delayed:false};
+      });
+      (e.delayedTriggers||[]).forEach(function(t){
+        var k = keyFor(t, e.delayedTriggerOtherText);
+        seen[k.key] = seen[k.key] || {label:k.label, delayed:false};
+        seen[k.key].delayed = true;
+      });
+      Object.keys(seen).forEach(function(key){
+        if(!map[key]) map[key] = {label:seen[key].label, total:0, highPain:0, delayed:0};
         map[key].total++;
+        if(seen[key].delayed) map[key].delayed++;
         if(highPainDates[e.date]) map[key].highPain++;
       });
     });
@@ -1263,7 +1471,8 @@
         var sub = t.highPain > 0
           ? "On " + t.highPain + " of " + tally.highPainCount + " high-pain day" + (tally.highPainCount===1?"":"s")
           : "No high-pain days";
-        return '<div class="trigger-row"><div class="bar-wrap"><div class="lbl-line"><span>'+t.label+'</span><span class="count">'+t.total+'/'+curStats.count+'</span></div><div class="bar-track"><div class="bar-fill'+(flagged?" flagged":"")+'" style="width:'+pct+'%"></div></div><div class="sub-line">'+sub+'</div></div></div>';
+        if(t.delayed) sub += " · " + t.delayed + " delayed";
+        return '<div class="trigger-row"><div class="bar-wrap"><div class="lbl-line"><span>'+escapeHtml(t.label)+'</span><span class="count">'+t.total+'/'+curStats.count+'</span></div><div class="bar-track"><div class="bar-fill'+(flagged?" flagged":"")+'" style="width:'+pct+'%"></div></div><div class="sub-line">'+sub+'</div></div></div>';
       }).join("");
     }
   }
