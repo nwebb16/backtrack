@@ -179,9 +179,19 @@ up a new deploy.
   - Automatic Strava look-back at the 1–2 days before bad mornings.
   - Stiffness line on the chart, plus tiles for avg stiffness,
     stiff-but-pain-free days and days limited.
-- **Round 3:** Apple Health sleep. Nat says Garmin Connect already feeds Apple
-  Health. Next: check Health → Browse → Sleep for stages vs total only.
-  Before this round, decide whether to add a lock (no login today).
+- **Round 3:** Apple Health via a morning iPhone Shortcut, writing one row per
+  day to a new daily health table (not `backtrack_entries`).
+  - Confirmed 3 Oct: Garmin writes **sleep with stages** and **steps** (history
+    back to 2019) to Apple Health.
+  - Plan: sleep, plus sedentary measures from hourly steps (still hours with
+    under ~250 steps, number of movement breaks, longest still stretch). These
+    would replace the manual hours-in-chair guess and the breaks switch.
+    Keep the manual fields until the automatic data has proved reliable.
+  - Still to check: whether Garmin's step samples are fine-grained enough for
+    an hourly breakdown.
+  - Garmin → Health can stall silently. Flag "no sleep data for last night";
+    don't show blanks.
+  - Before this round, decide whether to add a lock (no login today).
 - **Maybe:** a faster check-in via an iPhone Shortcut (Action button / Back
   Tap) or a `?checkin` URL that opens the sheet directly.
 - **Parked:** tidying the legacy Other texts ("Laptop & lounge" etc.). Less
