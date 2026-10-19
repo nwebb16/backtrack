@@ -115,11 +115,15 @@ immediately (insert on Add, delete on ×).
 
 ### Strava sync (outside this repo)
 
-A nightly **Claude scheduled task** (not on Nat's Windows machine's local
-scheduled tasks; it runs elsewhere, so its prompt isn't visible from here) syncs Strava activities into
+A nightly **Claude cloud routine**, *Backtrack — Strava sync & evening reminder*
+(`trig_01VDYEoRPe1gRNqSkB1BYWD9`, read it with the RemoteTrigger tool), syncs Strava activities into
 `backtrack_activities` at **7pm Brisbane**, using `strava_activity_id` to
 dedupe. **Don't change the table shape (rename/drop columns, change the
 dedupe key or `source` values) without updating that task too.**
+
+- Its instructions are kept in [docs/strava-sync-prompt.md](docs/strava-sync-prompt.md). Edit the routine on claude.ai, not via the API: its settings block is about 90KB and a partial update risks wiping its connectors.
+- It looks back 3 days and stamps each row with the activity's own date (from 19 Oct 2026; before that it was today only).
+- **15–18 Oct 2026 outage:** the Supabase connector's sign-in lapsed, so every save got `You do not have permission to perform this action`. Fixed by reconnecting Supabase on claude.ai (org *Personal Apps*). The 4 missed activities were backfilled. If saves start failing again, reconnecting the connector is the first thing to try.
 
 While today's entry is open, the app polls every 45s and merges in any new
 `source = 'strava'` rows without touching what's being typed.
