@@ -125,6 +125,7 @@ dedupe key or `source` values) without updating that task too.**
 
 - Its instructions are kept in [docs/strava-sync-prompt.md](docs/strava-sync-prompt.md). Edit the routine on claude.ai, not via the API: its settings block is about 90KB and a partial update risks wiping its connectors.
 - It looks back 3 days and stamps each row with the activity's own date (from 19 Oct 2026; before that it was today only).
+- **Health check:** every successful run stamps `backtrack_sync_status` (one row, `id='strava'`: `last_run_at`, `last_success_at`, `last_error`, `last_count`). It's read-only to the app (anon has select only); the routine writes it via `apply_migration`. The app (`checkSyncStatus`, on load and when it comes back to the foreground) shows a banner when `last_success_at` is over 30h old. If you change the routine, keep the stamp.
 - **15–18 Oct 2026 outage:** the Supabase connector's sign-in lapsed, so every save got `You do not have permission to perform this action`. Fixed by reconnecting Supabase on claude.ai (org *Personal Apps*). The 4 missed activities were backfilled. If saves start failing again, reconnecting the connector is the first thing to try.
 
 While today's entry is open, the app polls every 45s and merges in any new
