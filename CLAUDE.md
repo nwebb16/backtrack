@@ -73,7 +73,9 @@ earlier?", `med_taken` / `med_name` / `med_dose`, and
 
 **Written now:** `date`, `activity_impact` (`none` | `modified` | `skipped`),
 `activity_impact_note`, `rehab_session_done`, `rehab_notes`, `stretch_done`,
-`office_hours`, `sitting_breaks`, `sleep_hours`, `notes`, `updated_at`, plus
+`office_hours`, `sitting_breaks`, `sleep_hours`, `medication_taken` / `_name` /
+`_dose` / `_helped` (nightly Medication card, restored 19 Oct 2026 at Nat's request;
+check-ins also have their own timed meds), `notes`, `updated_at`, plus
 `pain_score` / `stiffness_score` = the check-in peak when there are check-ins.
 Saved with `upsert(..., {onConflict: "date"})`. Only the columns in
 `docToEntryRow` are sent, so the others are never touched.
@@ -81,7 +83,7 @@ Saved with `upsert(..., {onConflict: "date"})`. Only the columns in
 **Legacy, read-only** (from before 3 Oct 2026; the report still counts them):
 `pain_triggers`, `pain_trigger_other_text`, `pain_timing`, `delayed_onset`,
 `delayed_onset_note`, `delayed_triggers`, `delayed_trigger_other_text`,
-`delayed_days_ago`, `medication_*`. Never write these, or re-saving an old day
+`delayed_days_ago`. Never write these, or re-saving an old day
 would wipe its history.
 
 **Unused:** `stiffness_timing`, `stiffness_eased` (existed for one day),
