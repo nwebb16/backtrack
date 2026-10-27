@@ -176,6 +176,17 @@ No automated tests. Check changes by serving the folder locally and loading
 Home-screen apps can cache the old version: close and reopen the app to pick
 up a new deploy.
 
+## Strava sync: status and next step (28 Oct 2026)
+
+- **Broken since 21 Oct.** The v3 routine's HTTPS save is blocked by the cloud environment's network allowlist (`Tunnel connection failed: 403`, `host_not_allowed`). The routine has no repo, so its edit dialog shows no Cloud environment option. Allowing `fmmltsrmyhxtmqseuxck.supabase.co` on the Default environment via claude.ai/code was offered but not done.
+- Activities for 16–18 Oct and 20–28 Oct were backfilled by hand (local machine, public key). The health stamp was deliberately **not** touched, so the banner stays until the sync really works.
+- **Decision (Nat, 28 Oct): Option C.** Remove Claude from the sync entirely: a Supabase Edge Function on a nightly schedule (pg_cron + pg_net) calls the Strava API directly, upserts `backtrack_activities` and calls `backtrack_record_sync`. Needs about 30 minutes with Nat.
+  - **Nat:** registers a Strava API app (strava.com/settings/api), does the one-time authorise to get a refresh token, and pastes client id/secret/refresh token into Supabase secrets *himself*. Claude never handles them.
+  - **Claude:** builds the function, schedule and SQL.
+  - **Deploy:** the Supabase connector points at NKW Financial, so deploy via the dashboard (Nat pastes code) or a locally logged-in Supabase CLI. Don't re-point the connector.
+  - Strava rotates refresh tokens, so the function must save the new one each run (e.g. a private table that only the function can read).
+  - Once it's live, turn off the cloud routine (or reduce it to the evening reminder only).
+- Until then the nightly routine keeps failing and sends "⚠️ sync failed" each night. Backfill again when Option C goes live (3-day look-back won't cover the gap).
 ## Open items (as of 3 Oct 2026, night)
 
 - **Round 2 (reporting):**
